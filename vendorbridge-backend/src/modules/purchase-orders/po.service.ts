@@ -63,12 +63,19 @@ export async function createPurchaseOrder(input: {
 	return purchaseOrder;
 }
 
-export async function listPurchaseOrders(query: { status?: string; page?: string | number; limit?: string | number }) {
+export async function listPurchaseOrders(query: { status?: string; page?: string | number; limit?: string | number }, user: { role: string, vendorId?: string | null }) {
 	const { page, limit, skip } = parsePagination(query);
 	const where: Record<string, unknown> = {};
 
 	if (query.status) {
 		where.status = query.status.toUpperCase() as PurchaseOrderStatus;
+	}
+
+	if (user.role === 'VENDOR') {
+		if (!user.vendorId) {
+			throw new AppError('Vendor ID not found for this user', 403);
+		}
+		where.vendorId = user.vendorId;
 	}
 
 	const [purchaseOrders, total] = await Promise.all([
