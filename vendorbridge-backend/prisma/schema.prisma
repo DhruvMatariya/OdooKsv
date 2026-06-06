@@ -1,4 +1,5 @@
-generator client {
+prisma/schema.prisma — implement every model fully
+prismagenerator client {
   provider = "prisma-client-js"
 }
 
@@ -6,3 +7,226 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum Role {
+  ADMIN
+  MANAGER
+  PROCUREMENT_OFFICER
+  VENDOR
+}
+
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+enum RFQStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  CANCELLED
+}
+
+enum QuotationStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum POStatus {
+  DRAFT
+  CONFIRMED
+  DELIVERED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         Role     @default(PROCUREMENT_OFFICER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rfqs         RFQ[]
+  approvals    Approval[]
+  activityLogs ActivityLog[]
+}
+
+model Vendor {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  phone        String
+  address      String
+  city         String
+  state        String
+  country      String       @default("India")
+  gstNumber    String?      @unique
+  category     String
+  status       VendorStatus @default(ACTIVE)
+  rating       Float        @default(0)
+  totalOrders  Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  rfqVendors   RFQVendor[]
+  quotations   Quotation[]
+}
+
+model RFQ {
+  id           String    @id @default(cuid())
+  rfqNumber    String    @unique
+  title        String
+  description  String?
+  deadline     DateTime
+  status       RFQStatus @default(DRAFT)
+  createdById  String
+  createdBy    User      @relation(fields: [createdById], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  items        RFQItem[]
+  vendors      RFQVendor[]
+  quotations   Quotation[]
+  approval     Approval?
+}
+
+model RFQItem {
+  id          String  @id @default(cuid())
+  rfqId       String
+  rfq         RFQ     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  quantity    Float
+  unit        String
+}
+
+model RFQVendor {
+  id        String   @id @default(cuid())
+  rfqId     String
+  rfq       RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  invitedAt DateTime @default(now())
+
+  @@unique([rfqId, vendorId])
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  quotationNumber String          @unique
+  rfqId           String
+  rfq             RFQ             @relation(fields: [rfqId], references: [id])
+  vendorId        String
+  vendor          Vendor          @relation(fields: [vendorId], references: [id])
+  status          QuotationStatus @default(DRAFT)
+  totalAmount     Float
+  deliveryDays    Int
+  validUntil      DateTime
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  items           QuotationItem[]
+  purchaseOrder   PurchaseOrder?
+}
+
+model QuotationItem {
+  id           String    @id @default(cuid())
+  quotationId  String
+  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  rfqItemName  String
+  quantity     Float
+  unitPrice    Float
+  totalPrice   Float
+}
+
+model Approval {
+  id          String         @id @default(cuid())
+  rfqId       String         @unique
+  rfq         RFQ            @relation(fields: [rfqId], references: [id])
+  approverId  String
+  approver    User           @relation(fields: [approverId], references: [id])
+  status      ApprovalStatus @default(PENDING)
+  remarks     String?
+  requestedAt DateTime       @default(now())
+  resolvedAt  DateTime?
+}
+
+model PurchaseOrder {
+  id            String    @id @default(cuid())
+  poNumber      String    @unique
+  quotationId   String    @unique
+  quotation     Quotation @relation(fields: [quotationId], references: [id])
+  status        POStatus  @default(DRAFT)
+  totalAmount   Float
+  taxAmount     Float
+  grandTotal    Float
+  deliveryDate  DateTime
+  terms         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  invoice       Invoice?
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  purchaseOrderId String        @unique
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  status          InvoiceStatus @default(DRAFT)
+  subtotal        Float
+  taxRate         Float         @default(18)
+  taxAmount       Float
+  grandTotal      Float
+  dueDate         DateTime
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  action      String
+  entity      String
+  entityId    String
+  description String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+}
+
+src/lib/prisma.ts
+typescriptimport { PrismaClient } from '@prisma/client';
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
