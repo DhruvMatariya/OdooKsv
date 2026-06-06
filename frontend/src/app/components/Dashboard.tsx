@@ -1,7 +1,38 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Clock, FileText, ShoppingCart, Receipt, Plus, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+
+import {
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  FileText,
+  ShoppingCart,
+  Receipt,
+  Plus,
+  ArrowRight,
+  MoreHorizontal,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
+
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
+
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
+
+import { cn } from './ui/utils';
+import type { Page } from './Sidebar';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 import { cn } from './ui/utils';
 import type { Page } from './Sidebar';
 import { api } from '../lib/api';
@@ -151,21 +182,39 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-3">
-        {role !== 'procurement' && (
-          <>
-            <button
-              onClick={() => onNavigate('rfq-create')}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 12px rgba(0,70,67,0.3)' }}>
-              <Plus className="w-4 h-4" /> Create RFQ
-            </button>
-            <button
-              onClick={() => onNavigate('vendors')}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#004643] text-[#004643] bg-white hover:bg-[#D4EEEC] transition-colors">
-              <Plus className="w-4 h-4" /> Add Vendor
-            </button>
-          </>
-        )}
+<div className="flex flex-wrap gap-3">
+  {role !== 'procurement' && (
+    <>
+      <button
+        onClick={() => onNavigate('rfq-create')}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+        style={{
+          background: 'linear-gradient(135deg, #004643, #00706A)',
+          boxShadow: '0 4px 12px rgba(0,70,67,0.3)',
+        }}
+      >
+        <Plus className="w-4 h-4" />
+        Create RFQ
+      </button>
+
+      <button
+        onClick={() => onNavigate('vendors')}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#004643] text-[#004643] bg-white hover:bg-[#D4EEEC] transition-colors"
+      >
+        <Plus className="w-4 h-4" />
+        Add Vendor
+      </button>
+    </>
+  )}
+
+  <button
+    onClick={() => onNavigate('reports')}
+    className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#C8E0DE] text-[#527270] bg-white hover:bg-[#EBF7F6] transition-colors"
+  >
+    View Reports
+    <ArrowRight className="w-4 h-4" />
+  </button>
+</div>
       </div>
 
       {/* Tables row */}
