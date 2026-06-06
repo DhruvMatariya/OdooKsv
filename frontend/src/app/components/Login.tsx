@@ -121,9 +121,45 @@ export function Login() {
       <div className="hidden lg:flex flex-col justify-between w-[42%] p-12 relative overflow-hidden"
         style={{ background: 'linear-gradient(145deg, #003330 0%, #004643 50%, #00706A 100%)' }}>
         {/* Decorative circles */}
-        <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5" />
-        <div className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-white/5" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-white/5" />
+        <motion.div
+          animate={{
+            x: [0, 40, -20, 0],
+            y: [0, -30, 40, 0],
+            scale: [1, 1.1, 0.95, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5"
+        />
+        <motion.div
+          animate={{
+            x: [0, -50, 30, 0],
+            y: [0, 40, -20, 0],
+            scale: [1, 0.9, 1.05, 1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-white/5"
+        />
+        <motion.div
+          animate={{
+            x: [0, 30, -40, 0],
+            y: [0, 30, -30, 0],
+            scale: [1, 1.05, 0.9, 1],
+          }}
+          transition={{
+            duration: 22,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-white/5"
+        />
 
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 opacity-10"

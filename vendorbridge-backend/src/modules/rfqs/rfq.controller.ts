@@ -18,7 +18,8 @@ export async function createRfqHandler(req: AuthRequest, res: Response, next: Ne
 
 export async function listRfqHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
 	try {
-		const data = await listRfqs(req.query as Record<string, string>);
+		if (!req.user) throw new AppError('Unauthorized', 401);
+		const data = await listRfqs(req.query as Record<string, string>, req.user);
 		res.status(200).json({ success: true, data });
 	} catch (error) {
 		next(error);

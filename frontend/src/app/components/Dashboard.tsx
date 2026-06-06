@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, Clock, FileText, ShoppingCart, Receipt, Plus, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useAuth } from '../context/AuthContext';
 import { cn } from './ui/utils';
 import type { Page } from './Sidebar';
 import { api } from '../lib/api';
@@ -45,6 +47,8 @@ const formatCurrency = (val: number) => {
 };
 
 export function Dashboard({ onNavigate }: DashboardProps) {
+  const { user } = useAuth();
+  const role = user?.role;
   const [data, setData] = useState<BackendDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,12 +123,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-2">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        {kpis.map(kpi => (
-          <div key={kpi.title}
-            className="bg-white rounded-xl p-5 border border-[#C8E0DE]/60 hover:shadow-md transition-shadow"
+        {kpis.map((kpi, idx) => (
+          <motion.div
+            key={kpi.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: idx * 0.1 }}
+            className="bg-white rounded-xl p-5 border border-[#C8E0DE]/60 hover:shadow-lg transition-all hover:-translate-y-1"
             style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -137,23 +145,27 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               <p className="text-sm font-medium text-[#0D1F1E] mt-0.5">{kpi.title}</p>
               <p className="text-xs text-[#527270] mt-0.5">{kpi.desc}</p>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-3">
-        <button
-          onClick={() => onNavigate('rfq-create')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 12px rgba(0,70,67,0.3)' }}>
-          <Plus className="w-4 h-4" /> Create RFQ
-        </button>
-        <button
-          onClick={() => onNavigate('vendors')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#004643] text-[#004643] bg-white hover:bg-[#D4EEEC] transition-colors">
-          <Plus className="w-4 h-4" /> Add Vendor
-        </button>
+        {role !== 'procurement' && (
+          <>
+            <button
+              onClick={() => onNavigate('rfq-create')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 12px rgba(0,70,67,0.3)' }}>
+              <Plus className="w-4 h-4" /> Create RFQ
+            </button>
+            <button
+              onClick={() => onNavigate('vendors')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#004643] text-[#004643] bg-white hover:bg-[#D4EEEC] transition-colors">
+              <Plus className="w-4 h-4" /> Add Vendor
+            </button>
+          </>
+        )}
       </div>
 
       {/* Tables row */}

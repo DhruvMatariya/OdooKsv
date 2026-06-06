@@ -7,6 +7,7 @@ import {
 	compareQuotationsHandler,
 	createQuotationHandler,
 	listQuotationsHandler,
+	listMyQuotationsHandler,
 	updateQuotationHandler,
 } from './quotation.controller';
 import { createQuotationValidation, updateQuotationValidation } from './quotation.validation';
@@ -14,6 +15,7 @@ import { createQuotationValidation, updateQuotationValidation } from './quotatio
 const router = Router();
 
 router.post('/rfqs/:rfqId/quotations', authenticate, authorize(UserRole.VENDOR), createQuotationValidation, validate, createQuotationHandler);
+router.get('/quotations', authenticate, authorize(UserRole.VENDOR), listMyQuotationsHandler);
 router.get('/rfqs/:rfqId/quotations', authenticate, authorize(UserRole.PROCUREMENT_OFFICER, UserRole.MANAGER, UserRole.ADMIN), listQuotationsHandler);
 router.get('/rfqs/:rfqId/quotations/compare', authenticate, authorize(UserRole.PROCUREMENT_OFFICER, UserRole.MANAGER, UserRole.ADMIN), compareQuotationsHandler);
 router.patch('/quotations/:id', authenticate, authorize(UserRole.VENDOR), updateQuotationValidation, validate, updateQuotationHandler);

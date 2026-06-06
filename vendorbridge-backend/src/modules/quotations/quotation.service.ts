@@ -95,6 +95,24 @@ export async function listQuotationsForRfq(rfqId: string) {
 	return quotations;
 }
 
+export async function listMyQuotations(vendorUserId: string) {
+	const user = await prisma.user.findUnique({ where: { id: vendorUserId } });
+	if (!user || user.role !== UserRole.VENDOR || !user.vendorId) {
+		throw new AppError('Vendor access required', 403);
+	}
+
+	const quotations = await prisma.quotation.findMany({
+		where: { vendorId: user.vendorId },
+		include: {
+			rfq: true,
+			items: true,
+		},
+		orderBy: { createdAt: 'desc' },
+	});
+
+	return quotations;
+}
+
 export async function compareQuotationsForRfq(rfqId: string) {
 	const rfq = await prisma.rfq.findUnique({
 		where: { id: rfqId },
