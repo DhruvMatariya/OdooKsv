@@ -138,7 +138,7 @@ export function ManagerApprovals() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#D8EDEB" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#527270' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: '#527270' }} axisLine={false} tickLine={false} />
-                <Tooltip />
+                <Tooltip cursor={false} />
                 <Bar dataKey="approved" name="Approved" fill="#00706A" radius={[3, 3, 0, 0]} maxBarSize={18} />
                 <Bar dataKey="rejected" name="Rejected" fill="#C0392B" radius={[3, 3, 0, 0]} maxBarSize={18} />
               </BarChart>
