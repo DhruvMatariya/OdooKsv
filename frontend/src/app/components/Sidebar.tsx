@@ -126,19 +126,7 @@ export function Sidebar({ currentPage, onNavigate, collapsed, onToggle }: Sideba
       </nav>
 
       {/* User info */}
-      {!collapsed && user && (
-        <div className="px-3 py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-white/10">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 bg-white/20">
-              {user.avatarInitials}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-white truncate">{user.firstName} {user.lastName}</p>
-              <p className="truncate text-white/50" style={{ fontSize: 10 }}>{roleLabels[role]}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed user info section */}
 
       {/* Collapse toggle */}
       <div className={cn('p-2 border-t', !collapsed && 'pt-0 border-0')} style={{ borderColor: 'rgba(255,255,255,0.1)' }}>

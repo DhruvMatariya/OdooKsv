@@ -1,7 +1,7 @@
-import { Bell, Search, ChevronDown, LogOut, User, Settings } from 'lucide-react';
+import { Bell, Search, LogOut, User, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from './ui/utils';
-import { useAuth, roleLabels } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
   pageTitle: string;
@@ -85,11 +85,6 @@ export function Navbar({ pageTitle }: NavbarProps) {
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold" style={{ fontSize: 13, background: '#004643' }}>
             {user?.avatarInitials || 'U'}
           </div>
-          <div className="hidden md:block text-left">
-            <p className="text-sm font-medium text-[#0D1F1E]" style={{ lineHeight: 1.2 }}>{user ? `${user.firstName} ${user.lastName}` : 'User'}</p>
-            <p className="text-[#527270]" style={{ fontSize: 11 }}>{user ? roleLabels[user.role] : ''}</p>
-          </div>
-          <ChevronDown className="w-4 h-4 text-[#527270] hidden md:block" />
         </button>
 
         {showUser && (
