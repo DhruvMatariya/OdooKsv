@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { errorMiddleware } from './middleware/error.middleware';
 
 import authRouter from './modules/auth/auth.routes';
+import userRouter from './modules/users/user.routes';
 import vendorRouter from './modules/vendors/vendor.routes';
 import rfqRouter from './modules/rfqs/rfq.routes';
 import quotationRouter from './modules/quotations/quotation.routes';
@@ -25,6 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', (_, res) => res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } }));
 
 app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
 app.use('/api/vendors', vendorRouter);
 app.use('/api/rfqs', rfqRouter);
 app.use('/api', quotationRouter);

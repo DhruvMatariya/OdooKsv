@@ -164,7 +164,7 @@ export function useAuth() {
 export const roleLabels: Record<UserRole, string> = {
   procurement: 'Procurement Officer',
   vendor: 'Vendor',
-  manager: 'Manager / Approver',
+  manager: 'Manager',
   admin: 'Administrator',
 };
 

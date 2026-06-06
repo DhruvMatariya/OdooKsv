@@ -12,10 +12,7 @@ const countries = [
 ];
 
 const roles: Array<{ value: UserRole; label: string; desc: string }> = [
-  { value: 'procurement', label: 'Procurement Officer', desc: 'Create RFQs, POs, and invoices' },
   { value: 'vendor', label: 'Vendor', desc: 'Submit quotations and track orders' },
-  { value: 'manager', label: 'Manager / Approver', desc: 'Approve procurement requests' },
-  { value: 'admin', label: 'Administrator', desc: 'Manage users and system settings' },
 ];
 
 export function Login() {
@@ -30,7 +27,7 @@ export function Login() {
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Signup state
-  const [signupData, setSignupData] = useState<Partial<SignupData>>({});
+  const [signupData, setSignupData] = useState<Partial<SignupData>>({ role: 'vendor' });
   const [signupPwd, setSignupPwd] = useState('');
   const [showSignupPwd, setShowSignupPwd] = useState(false);
   const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
@@ -322,64 +319,37 @@ export function Login() {
                       )}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">First Name <span className="text-[#C0392B]">*</span></label>
+                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">First Name</label>
                           <input type="text" value={signupData.firstName || ''} onChange={e => updateSignup('firstName', e.target.value)}
-                            placeholder="James"
-                            className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                              signupErrors.firstName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                          {signupErrors.firstName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.firstName}</p>}
+                            placeholder="John" className={cn('w-full px-3 py-2 border rounded-lg text-sm transition-all outline-none', signupErrors.firstName ? 'border-red-500 focus:ring-red-200' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20')} />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Last Name <span className="text-[#C0392B]">*</span></label>
+                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Last Name</label>
                           <input type="text" value={signupData.lastName || ''} onChange={e => updateSignup('lastName', e.target.value)}
-                            placeholder="Donovan"
-                            className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                              signupErrors.lastName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                          {signupErrors.lastName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.lastName}</p>}
+                            placeholder="Doe" className={cn('w-full px-3 py-2 border rounded-lg text-sm transition-all outline-none', signupErrors.lastName ? 'border-red-500 focus:ring-red-200' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20')} />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Email <span className="text-[#C0392B]">*</span></label>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Email Address</label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
                           <input type="email" value={signupData.email || ''} onChange={e => updateSignup('email', e.target.value)}
-                            placeholder="you@company.com"
-                            className={cn('w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                              signupErrors.email ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                            placeholder="john@example.com" className={cn('w-full pl-9 pr-4 py-2 border rounded-lg text-sm transition-all outline-none', signupErrors.email ? 'border-red-500 focus:ring-red-200' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20')} />
                         </div>
-                        {signupErrors.email && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.email}</p>}
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Phone <span className="text-[#C0392B]">*</span></label>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Phone Number</label>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
                           <input type="tel" value={signupData.phone || ''} onChange={e => updateSignup('phone', e.target.value)}
-                            placeholder="+91 98765 43210"
-                            className={cn('w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                              signupErrors.phone ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                            placeholder="+91 98765 43210" className={cn('w-full pl-9 pr-4 py-2 border rounded-lg text-sm transition-all outline-none', signupErrors.phone ? 'border-red-500 focus:ring-red-200' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20')} />
                         </div>
-                        {signupErrors.phone && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.phone}</p>}
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-[#0D1F1E] mb-2">Role <span className="text-[#C0392B]">*</span></label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {roles.map(r => (
-                            <button type="button" key={r.value} onClick={() => updateSignup('role', r.value)}
-                              className={cn(
-                                'text-left px-3 py-2 rounded-lg border-2 transition-all',
-                                signupData.role === r.value
-                                  ? 'border-[#004643] bg-[#D4EEEC]'
-                                  : 'border-[#C8E0DE] hover:border-[#004643]/40 hover:bg-[#EBF7F6]'
-                              )}>
-                              <p className={cn('text-xs font-semibold', signupData.role === r.value ? 'text-[#004643]' : 'text-[#0D1F1E]')}>{r.label}</p>
-                              <p className="text-[#527270] mt-0.5" style={{ fontSize: 9 }}>{r.desc}</p>
-                            </button>
-                          ))}
-                        </div>
-                        {signupErrors.role && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.role}</p>}
+                      <div className="pt-2">
+                        <p className="text-xs text-[#527270] mb-3">Registration is only available for Vendors. Internal roles must be invited by an administrator.</p>
                       </div>
 
                       <button type="submit"
