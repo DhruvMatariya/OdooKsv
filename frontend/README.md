@@ -1,150 +1,226 @@
-# 🌿 VendorBridge
+# VendorBridge
 
-> Transforming Procurement from Emails & Spreadsheets into a Unified Digital Workflow
+VendorBridge is a procurement and vendor management platform that helps organizations manage the complete purchasing workflow from a single system.
 
-![VendorBridge Banner](https://via.placeholder.com/1200x400?text=VendorBridge)
+The application covers vendor onboarding, RFQ management, quotation collection, approval workflows, purchase order generation, invoice management, and procurement analytics.
 
-## 🚀 Overview
-
-VendorBridge is a modern Procurement & Vendor Management ERP built to simplify how organizations manage vendors, RFQs, quotations, approvals, purchase orders, and invoices.
-
-Traditional procurement often involves endless email chains, spreadsheets, and manual approvals. VendorBridge centralizes the entire procurement lifecycle into one streamlined platform, providing transparency, efficiency, and control.
+Instead of managing procurement through spreadsheets, email threads, and manual approvals, VendorBridge provides a structured workflow where every step can be tracked and audited.
 
 ---
 
-## 🎯 Problem Statement
+## Why We Built It
 
-Organizations struggle with:
+Procurement is often handled across multiple tools.
 
-* Scattered vendor information
-* Manual quotation comparisons
-* Slow approval processes
-* Poor procurement visibility
-* Difficult audit tracking
-* Time-consuming invoice management
+Vendor information lives in spreadsheets, quotations arrive through email, approvals happen in chat messages, and purchase records are scattered across different systems.
 
-VendorBridge solves these challenges through a centralized procurement ecosystem.
+This creates a few common problems:
 
----
+* Vendor information becomes difficult to maintain
+* Quotation comparison takes unnecessary time
+* Approval processes lack visibility
+* Procurement activities are difficult to audit
+* Teams spend time on manual follow-ups instead of decision-making
 
-## ✨ Key Features
-
-### 👥 Vendor Management
-
-* Vendor registration & onboarding
-* GST and compliance tracking
-* Vendor categorization
-* Vendor performance monitoring
-
-### 📋 RFQ Management
-
-* Create and publish RFQs
-* Assign RFQs to vendors
-* Manage deadlines
-* Track RFQ lifecycle
-
-### 💰 Quotation Management
-
-* Vendor quotation submission
-* Side-by-side comparison
-* Lowest price identification
-* Delivery timeline comparison
-
-### ✅ Approval Workflow
-
-* Multi-stage approvals
-* Approval remarks
-* Status tracking
-* Audit-ready workflow history
-
-### 📦 Purchase Orders
-
-* Automatic PO generation
-* Approval-based workflow
-* Vendor-linked procurement records
-
-### 🧾 Invoice Management
-
-* Invoice generation
-* PDF export
-* Print support
-* Email delivery
-
-### 📊 Analytics & Reports
-
-* Procurement trends
-* Spending insights
-* Vendor performance analytics
-* Procurement activity dashboards
+VendorBridge was built to bring these processes together into a single workflow.
 
 ---
 
-# 🏗️ System Architecture
+## What It Does
+
+VendorBridge manages the procurement lifecycle from start to finish.
+
+A procurement officer creates an RFQ and assigns vendors.
+
+Vendors receive the request and submit quotations through the platform.
+
+Procurement teams compare vendor responses, select a quotation, and send it for approval.
+
+Once approved, the system generates a purchase order and invoice while keeping a complete history of actions performed throughout the process.
+
+---
+
+## Core Workflow
 
 ```text
-Vendor
-   │
-   ▼
-Quotation Submission
-   │
-   ▼
-RFQ Comparison
-   │
-   ▼
-Approval Workflow
-   │
-   ▼
-Purchase Order
-   │
-   ▼
-Invoice Generation
-   │
-   ▼
-Analytics & Reporting
+Create RFQ
+    │
+    ▼
+Assign Vendors
+    │
+    ▼
+Receive Quotations
+    │
+    ▼
+Compare Responses
+    │
+    ▼
+Approval Process
+    │
+    ▼
+Generate Purchase Order
+    │
+    ▼
+Generate Invoice
+    │
+    ▼
+Track Activities & Analytics
 ```
 
 ---
 
-# ⚙️ Tech Stack
+## Features
 
-## Frontend
+### Vendor Management
 
-* Next.js 15
+* Register and manage vendors
+* Store GST and contact information
+* Categorize vendors
+* Maintain vendor status
+
+### RFQ Management
+
+* Create procurement requests
+* Assign vendors
+* Manage deadlines
+* Upload supporting documents
+* Publish and close RFQs
+
+### Quotation Management
+
+* Vendor quotation submission
+* Editable quotations
+* Delivery timeline tracking
+* Vendor notes and comments
+
+### Quotation Comparison
+
+* Side-by-side comparison
+* Price comparison
+* Delivery comparison
+* Vendor evaluation
+
+### Approval Workflow
+
+* Approval requests
+* Approval remarks
+* Status tracking
+* Workflow history
+
+### Purchase Orders
+
+* Purchase order generation
+* Procurement tracking
+* Status management
+
+### Invoice Management
+
+* Invoice generation
+* PDF export
+* Printing support
+* Email delivery
+
+### Activity Logs
+
+* RFQ activity tracking
+* Approval tracking
+* Purchase order updates
+* Invoice updates
+
+### Analytics Dashboard
+
+* Procurement trends
+* Spending summaries
+* Vendor performance
+* Approval statistics
+
+---
+
+## User Roles
+
+### Admin
+
+* Manage users
+* Manage vendors
+* View analytics
+
+### Procurement Officer
+
+* Create RFQs
+* Compare quotations
+* Generate purchase orders
+* Generate invoices
+
+### Vendor
+
+* Submit quotations
+* Track RFQ status
+* View purchase orders
+
+### Manager
+
+* Approve or reject procurement requests
+* Monitor procurement workflows
+
+---
+
+## Tech Stack
+
+### Frontend
+
+* Next.js
 * TypeScript
 * Tailwind CSS
 * shadcn/ui
-* React Query
-* Zustand
-* React Hook Form
-* Zod
 
-## Backend
+### Backend
 
 * Node.js
 * Express.js
-* REST API
 
-## Database
+### Database
 
 * PostgreSQL
 * Prisma ORM
 
-## Authentication
+### Authentication
 
 * JWT Authentication
-* Role-Based Access Control
-
-## Additional Services
-
-* Nodemailer
-* PDF Generation
-* Activity Logging
+* Role-Based Access Control (RBAC)
 
 ---
 
-# 🗄️ Database Design
+## System Architecture
 
-Core entities:
+```text
+┌──────────────┐
+│   Frontend   │
+│   Next.js    │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Express API │
+│   Node.js   │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│    Prisma    │
+│     ORM      │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ PostgreSQL   │
+└──────────────┘
+```
+
+---
+
+## Database Overview
+
+The application is built around the following core entities:
 
 ```text
 User
@@ -159,82 +235,28 @@ Notification
 ActivityLog
 ```
 
-Relationships:
+Entity relationships:
 
 ```text
 Vendor
-   │
-   ├── RFQs
-   │
-   ├── Quotations
-   │
-   └── Purchase Orders
+ ├── RFQs
+ ├── Quotations
+ └── PurchaseOrders
 
 RFQ
-   │
-   ├── Quotations
-   │
-   └── Approvals
+ ├── Vendors
+ ├── Quotations
+ └── Approvals
 
-Purchase Order
-   │
-   └── Invoice
+PurchaseOrder
+ └── Invoice
 ```
 
----
-
-# 🔐 User Roles
-
-## Admin
-
-* Manage users
-* Manage vendors
-* Access analytics
-
-## Procurement Officer
-
-* Create RFQs
-* Compare quotations
-* Generate purchase orders
-* Generate invoices
-
-## Vendor
-
-* Submit quotations
-* Track RFQ status
-* View purchase orders
-
-## Manager
-
-* Approve or reject procurement requests
-* Monitor workflow progress
+Prisma is used for schema management, migrations, and database access.
 
 ---
 
-# 🎨 Design Philosophy
-
-VendorBridge combines:
-
-✅ Enterprise-grade workflows
-
-✅ Modern SaaS experience
-
-✅ Clean dashboard architecture
-
-✅ Fast procurement decisions
-
-✅ Audit-friendly tracking
-
-Theme Colors:
-
-```css
-Primary: #415B06
-Background: #F0E6DA
-```
-
----
-
-# 📡 API Modules
+## API Overview
 
 ### Authentication
 
@@ -300,40 +322,51 @@ GET  /api/invoices/:id/pdf
 POST /api/invoices/:id/email
 ```
 
+### Additional Modules
+
+```http
+GET /api/dashboard
+GET /api/activity-logs
+GET /api/analytics
+```
+
 ---
 
-# 🚀 Getting Started
+## Running Locally
 
-### Install Dependencies
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd vendorbridge
+```
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-### Configure Environment
+Create a `.env` file:
 
 ```env
 DATABASE_URL=
 JWT_SECRET=
-SMTP_HOST=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASS=
 ```
 
-### Generate Prisma Client
+Generate Prisma Client:
 
 ```bash
 npx prisma generate
 ```
 
-### Run Database Migrations
+Run database migrations:
 
 ```bash
 npx prisma migrate dev
 ```
 
-### Start Development Server
+Start the development server:
 
 ```bash
 npm run dev
@@ -341,21 +374,24 @@ npm run dev
 
 ---
 
-# 📈 Future Enhancements
+## Future Improvements
 
-* AI-powered vendor recommendations
-* Smart quotation ranking
-* Predictive procurement analytics
+A few areas we would continue working on:
+
 * Multi-level approval chains
-* Vendor portal enhancements
+* Real-time notifications
+* Vendor performance scoring
+* Advanced reporting and exports
 * Procurement forecasting
+* ERP integrations
+* Role-based dashboard customization
 
 ---
 
-# 🏆 Hackathon Vision
+## Team Notes
 
-VendorBridge isn't just an ERP.
+One thing we learned while building VendorBridge is that procurement systems are less about individual features and more about workflow design.
 
-It's a procurement command center that turns fragmented purchasing processes into a transparent, data-driven, and scalable workflow.
+Creating vendors, RFQs, quotations, and invoices is relatively straightforward. The challenge is making sure every stage connects cleanly to the next while maintaining visibility, accountability, and traceability throughout the process.
 
-**Procure Smarter. Approve Faster. Grow Better.**
+This project gave us practical experience designing business workflows, modeling relational data with Prisma, building role-based systems, and connecting multiple modules into a single application that feels cohesive rather than a collection of separate features.
