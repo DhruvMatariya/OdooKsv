@@ -13,6 +13,8 @@ export interface AuthUser {
   country: string;
   avatarInitials: string;
   company?: string;
+  companyName?: string;
+  gstNumber?: string;
 }
 
 interface AuthContextType {
@@ -30,6 +32,8 @@ export interface SignupData {
   phone: string;
   role: UserRole;
   country: string;
+  companyName?: string;
+  gstNumber?: string;
   additionalInfo?: string;
   username?: string;
   password?: string;
@@ -102,6 +106,8 @@ function createMockJWT(user: AuthUser): string {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      companyName: user.companyName,
+      gstNumber: user.gstNumber,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 86400, // 24h
     })
@@ -172,6 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone: data.phone,
       role: data.role,
       country: data.country,
+      companyName: data.companyName,
+      gstNumber: data.gstNumber,
       avatarInitials: `${data.firstName[0]}${data.lastName[0]}`.toUpperCase(),
     };
 

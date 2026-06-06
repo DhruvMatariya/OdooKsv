@@ -71,6 +71,15 @@ export function Login() {
     if (!signupData.phone?.trim()) errs.phone = 'Required';
     if (!signupData.role) errs.role = 'Please select a role';
     if (!signupData.country) errs.country = 'Please select a country';
+
+    // Role-specific validation
+    if ((signupData.role === 'vendor' || signupData.role === 'procurement') && !signupData.companyName?.trim()) {
+      errs.companyName = 'Required';
+    }
+    if (signupData.role === 'vendor' && !signupData.gstNumber?.trim()) {
+      errs.gstNumber = 'Required';
+    }
+
     if (!signupPwd) errs.password = 'Required';
     else if (signupPwd.length < 8) errs.password = 'Min 8 characters';
 
@@ -118,14 +127,13 @@ export function Login() {
 
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: '📋', label: 'RFQs Published', value: '18,500+' },
-              { icon: '🏢', label: 'Active Vendors', value: '2,400+' },
-              { icon: '📦', label: 'Purchase Orders', value: '45,000+' },
-              { icon: '⚡', label: 'Faster Approvals', value: '3× faster' },
+              { label: 'RFQs Published', value: '18,500+' },
+              { label: 'Active Vendors', value: '2,400+' },
+              { label: 'Purchase Orders', value: '45,000+' },
+              { label: 'Faster Approvals', value: '3× faster' },
             ].map(s => (
               <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-                <span style={{ fontSize: 20 }}>{s.icon}</span>
-                <p className="text-white font-bold text-lg mt-2">{s.value}</p>
+                <p className="text-white font-bold text-lg">{s.value}</p>
                 <p className="text-white/60 text-xs mt-0.5">{s.label}</p>
               </div>
             ))}
@@ -336,6 +344,29 @@ export function Login() {
                   </div>
                   {signupErrors.role && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.role}</p>}
                 </div>
+
+                {/* Dynamic Fields based on Role */}
+                {(signupData.role === 'vendor' || signupData.role === 'procurement') && (
+                  <div>
+                    <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Company Name <span className="text-[#C0392B]">*</span></label>
+                    <input type="text" value={signupData.companyName || ''} onChange={e => updateSignup('companyName', e.target.value)}
+                      placeholder="Acme Corp"
+                      className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                        signupErrors.companyName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                    {signupErrors.companyName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.companyName}</p>}
+                  </div>
+                )}
+
+                {signupData.role === 'vendor' && (
+                  <div>
+                    <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">GST Number <span className="text-[#C0392B]">*</span></label>
+                    <input type="text" value={signupData.gstNumber || ''} onChange={e => updateSignup('gstNumber', e.target.value)}
+                      placeholder="22AAAAA0000A1Z5"
+                      className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                        signupErrors.gstNumber ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                    {signupErrors.gstNumber && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.gstNumber}</p>}
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Country <span className="text-[#C0392B]">*</span></label>
