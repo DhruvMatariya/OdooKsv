@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, User, Lock, ArrowRight, ChevronDown, Phone, Mail, Globe, FileText, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAuth, demoCredentials, roleLabels, type UserRole, type SignupData } from '../context/AuthContext';
+import { useAuth, roleLabels, type UserRole, type SignupData } from '../context/AuthContext';
 import { cn } from './ui/utils';
 
 type AuthView = 'login' | 'signup' | 'forgot';
@@ -23,7 +23,7 @@ export function Login() {
   const [view, setView] = useState<AuthView>('login');
 
   // Login state
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -34,6 +34,7 @@ export function Login() {
   const [signupPwd, setSignupPwd] = useState('');
   const [showSignupPwd, setShowSignupPwd] = useState(false);
   const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
+  const [signupError, setSignupError] = useState('');
   const [signupLoading, setSignupLoading] = useState(false);
   const [signupStep, setSignupStep] = useState(1);
   const [direction, setDirection] = useState(0); // 1 for forward, -1 for backward
@@ -45,19 +46,15 @@ export function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-    if (!username.trim()) { setLoginError('Username is required'); return; }
+    if (!email.trim()) { setLoginError('Email is required'); return; }
     if (!password) { setLoginError('Password is required'); return; }
     setLoginLoading(true);
-    const result = await login(username, password);
+    const result = await login(email, password);
     setLoginLoading(false);
     if (!result.success) setLoginError(result.error || 'Login failed');
   };
 
-  const fillDemo = (cred: typeof demoCredentials[0]) => {
-    setUsername(cred.username);
-    setPassword(cred.password);
-    setLoginError('');
-  };
+
 
   const updateSignup = (field: keyof SignupData, value: string) => {
     setSignupData(prev => ({ ...prev, [field]: value }));
@@ -112,8 +109,13 @@ export function Login() {
     if (Object.keys(errs).length) { setSignupErrors(errs); return; }
 
     setSignupLoading(true);
-    await signup({ ...signupData as SignupData, password: signupPwd });
+    setSignupError('');
+    const result = await signup({ ...signupData as SignupData, password: signupPwd });
     setSignupLoading(false);
+    
+    if (!result.success) {
+      setSignupError(result.error || 'Signup failed');
+    }
   };
 
   return (
@@ -213,15 +215,15 @@ export function Login() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Username</label>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Email</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
                     <input
-                      type="text"
-                      value={username}
-                      onChange={e => setUsername(e.target.value)}
-                      placeholder="e.g. james.donovan"
-                      autoComplete="username"
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="e.g. james@vendorbridge.in"
+                      autoComplete="email"
                       className="w-full pl-9 pr-4 py-2.5 border border-[#C8E0DE] rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all"
                     />
                   </div>
@@ -267,22 +269,7 @@ export function Login() {
                 </button>
               </form>
 
-              {/* Demo credentials */}
-              <div className="px-8 pb-6">
-                <div className="relative mb-4">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#D8EDEB]" /></div>
-                  <div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-[#527270]">try a demo account</span></div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {demoCredentials.map(cred => (
-                    <button key={cred.role} onClick={() => fillDemo(cred)}
-                      className="px-3 py-2 text-xs rounded-lg border border-[#C8E0DE] text-[#527270] hover:border-[#004643] hover:text-[#004643] hover:bg-[#D4EEEC] transition-all text-left">
-                      <span className="block font-medium text-[#0D1F1E]">{roleLabels[cred.role].split(' ')[0]}</span>
-                      <span className="text-[#527270]/70">{cred.username}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
               <div className="px-8 pb-7 text-center">
                 <p className="text-sm text-[#527270]">
@@ -325,6 +312,14 @@ export function Login() {
                       onSubmit={handleNextStep}
                       className="px-8 py-6 space-y-4"
                     >
+                      {signupError && (
+                        <div className="flex items-center gap-2 px-3 py-2.5 bg-[#FDECEA] border border-[#C0392B]/30 rounded-lg text-[#C0392B] text-sm">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" />
+                          </svg>
+                          {signupError}
+                        </div>
+                      )}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">First Name <span className="text-[#C0392B]">*</span></label>
@@ -404,6 +399,14 @@ export function Login() {
                       onSubmit={handleSignup}
                       className="px-8 py-6 space-y-4"
                     >
+                      {signupError && (
+                        <div className="flex items-center gap-2 px-3 py-2.5 bg-[#FDECEA] border border-[#C0392B]/30 rounded-lg text-[#C0392B] text-sm">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" />
+                          </svg>
+                          {signupError}
+                        </div>
+                      )}
                       {/* Dynamic Fields based on Role */}
                       {(signupData.role === 'vendor' || signupData.role === 'procurement') && (
                         <div>

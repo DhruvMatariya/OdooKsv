@@ -100,7 +100,7 @@ export async function getRfqById(id: string) {
 			},
 			approval: {
 				include: {
-					approver: { select: { id: true, name: true, email: true, role: true } },
+					approver: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
 				},
 			},
 		},

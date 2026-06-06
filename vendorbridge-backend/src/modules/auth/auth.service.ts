@@ -7,9 +7,13 @@ import { AppError } from '../../middleware/error.middleware';
 
 interface UserRecord {
 	id: string;
-	name: string;
+	firstName: string;
+	lastName: string;
 	email: string;
 	password: string;
+	phone: string | null;
+	country: string | null;
+	additionalInfo: string | null;
 	role: UserRole;
 	vendorId: string | null;
 	createdAt: Date;
@@ -31,10 +35,16 @@ function buildTokenPayload(user: { id: string; email: string; role: UserRole; ve
 }
 
 export async function registerUser(input: {
-	name: string;
+	firstName: string;
+	lastName: string;
 	email: string;
 	password: string;
 	role: UserRole;
+	phone?: string;
+	country?: string;
+	companyName?: string;
+	gstNumber?: string;
+	additionalInfo?: string;
 }): Promise<{ user: Omit<UserRecord, 'password'>; token: string }> {
 	const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
 	if (existingUser) {
@@ -42,12 +52,32 @@ export async function registerUser(input: {
 	}
 
 	const password = await hashPassword(input.password);
+	
+	let vendorId: string | undefined = undefined;
+
+	if (input.role === UserRole.VENDOR && input.companyName && input.gstNumber) {
+		const vendor = await prisma.vendor.create({
+			data: {
+				name: input.companyName,
+				email: input.email,
+				phone: input.phone || '',
+				gstNumber: input.gstNumber,
+			}
+		});
+		vendorId = vendor.id;
+	}
+
 	const user = await prisma.user.create({
 		data: {
-			name: input.name,
+			firstName: input.firstName,
+			lastName: input.lastName,
 			email: input.email,
 			password,
 			role: input.role,
+			phone: input.phone,
+			country: input.country,
+			additionalInfo: input.additionalInfo,
+			vendorId,
 		},
 	});
 
@@ -68,7 +98,7 @@ export async function registerUser(input: {
 export async function loginUser(input: {
 	email: string;
 	password: string;
-}): Promise<{ user: { id: string; name: string; email: string; role: UserRole }; token: string }> {
+}): Promise<{ user: Omit<UserRecord, 'password'>; token: string }> {
 	const user = await prisma.user.findUnique({ where: { email: input.email } });
 	if (!user) {
 		throw new AppError('Invalid credentials', 401);
@@ -80,12 +110,7 @@ export async function loginUser(input: {
 	}
 
 	return {
-		user: {
-			id: user.id,
-			name: user.name,
-			email: user.email,
-			role: user.role,
-		},
+		user: sanitizeUser(user),
 		token: signToken(buildTokenPayload(user)),
 	};
 }
@@ -95,9 +120,13 @@ export async function getCurrentUser(userId: string) {
 		where: { id: userId },
 		select: {
 			id: true,
-			name: true,
+			firstName: true,
+			lastName: true,
 			email: true,
 			role: true,
+			phone: true,
+			country: true,
+			additionalInfo: true,
 			vendorId: true,
 			createdAt: true,
 			updatedAt: true,

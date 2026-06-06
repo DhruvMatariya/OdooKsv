@@ -58,10 +58,11 @@ export async function getAnalytics(period = 30) {
 
   const categoryBreakdownMap = new Map<string, { category: string; vendorCount: number; totalSpend: number }>();
   for (const vendor of vendors) {
-    const current = categoryBreakdownMap.get(vendor.category) ?? { category: vendor.category, vendorCount: 0, totalSpend: 0 };
+    const category = vendor.category || 'Unknown';
+    const current = categoryBreakdownMap.get(category) ?? { category, vendorCount: 0, totalSpend: 0 };
     current.vendorCount += 1;
     current.totalSpend += vendor.purchaseOrders.reduce((sum, order) => sum + order.grandTotal, 0);
-    categoryBreakdownMap.set(vendor.category, current);
+    categoryBreakdownMap.set(category, current);
   }
 
   const avgApprovalTime = approvals.length
