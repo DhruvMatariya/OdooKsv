@@ -6,6 +6,6 @@ import { getLogsHandler } from './log.controller';
 
 const router = Router();
 
-router.get('/', authenticate, authorize(UserRole.ADMIN, UserRole.MANAGER), getLogsHandler);
+router.get('/', authenticate, authorize(UserRole.ADMIN, UserRole.MANAGER, UserRole.PROCUREMENT_OFFICER), getLogsHandler);
 
 export default router;

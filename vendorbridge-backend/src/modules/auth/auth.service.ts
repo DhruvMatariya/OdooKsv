@@ -46,9 +46,9 @@ export async function registerUser(input: {
 	gstNumber?: string;
 	additionalInfo?: string;
 }): Promise<{ user: Omit<UserRecord, 'password'>; token: string }> {
-	// Only Vendors are allowed to self-register
-	if (input.role !== UserRole.VENDOR) {
-		throw new AppError('Only vendors can self-register. Other roles must be invited by an administrator.', 403);
+	// Only Vendors and Admins are allowed to self-register
+	if (input.role !== UserRole.VENDOR && input.role !== UserRole.ADMIN) {
+		throw new AppError('Only vendors and admins can self-register. Other roles must be invited by an administrator.', 403);
 	}
 
 	const existingUser = await prisma.user.findUnique({ where: { email: input.email } });

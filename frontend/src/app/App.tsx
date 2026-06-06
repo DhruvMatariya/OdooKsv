@@ -113,9 +113,20 @@ function AppShell() {
   const { user } = useAuth();
   const role = user!.role;
   const [currentPage, setCurrentPage] = useState<Page>(defaultPage[role]);
+  const [activeRfqId, setActiveRfqId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const navigate = (page: Page) => setCurrentPage(page);
+  const navigate = (page: Page) => {
+    if (page.startsWith('rfq-view-')) {
+      setActiveRfqId(page.replace('rfq-view-', ''));
+      setCurrentPage('rfq-list');
+    } else if (page.startsWith('rfq-compare-')) {
+      setActiveRfqId(page.replace('rfq-compare-', ''));
+      setCurrentPage('quotations');
+    } else {
+      setCurrentPage(page);
+    }
+  };
   const sidebarWidth = sidebarCollapsed ? 72 : 240;
 
   const renderPage = () => {
@@ -125,7 +136,7 @@ function AppShell() {
       case 'vendors': return <VendorManagement />;
       case 'rfq-list': return <RFQList onNavigate={navigate} />;
       case 'rfq-create': return <RFQCreate onNavigate={navigate} />;
-      case 'quotations': return <QuotationComparison />;
+      case 'quotations': return <QuotationComparison rfqId={activeRfqId || undefined} onNavigate={navigate} />;
       case 'approvals': return <ApprovalWorkflow />;
       case 'purchase-orders': return <PurchaseOrders />;
       case 'invoices': return <PurchaseOrders />;

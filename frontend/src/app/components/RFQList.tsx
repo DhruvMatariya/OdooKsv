@@ -18,10 +18,14 @@ interface BackendRFQ {
     vendors: number;
     quotations: number;
   };
+  approval?: {
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    approverId: string;
+  };
 }
 
 const statusConfig = {
-  DRAFT: { label: 'Draft', color: '#527270', bg: '#D8EDEB' },
+  DRAFT: { label: 'Pending Approval', color: '#9A6800', bg: '#FFF0C8' },
   PUBLISHED: { label: 'Open', color: '#004643', bg: '#D4EEEC' },
   CLOSED: { label: 'Closed', color: '#527270', bg: '#D8EDEB' },
 };
@@ -174,9 +178,18 @@ export function RFQList({ onNavigate }: RFQListProps) {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-1">
-                            <button className="p-1.5 rounded-lg text-[#527270] hover:bg-[#D4EEEC] hover:text-[#004643] transition-colors" title="View">
+                            <button 
+                              onClick={() => onNavigate(`rfq-view-${rfq.id}` as any)}
+                              className="p-1.5 rounded-lg text-[#527270] hover:bg-[#D4EEEC] hover:text-[#004643] transition-colors" title="View">
                               <Eye className="w-4 h-4" />
                             </button>
+                            {rfq._count.quotations > 1 && (
+                              <button 
+                                onClick={() => onNavigate(`rfq-compare-${rfq.id}` as any)}
+                                className="p-1.5 rounded-lg text-[#9A6800] hover:bg-[#FFF0C8] transition-colors" title="Compare Quotations">
+                                <TrendingUp className="w-4 h-4" />
+                              </button>
+                            )}
                             {rfq.status === 'DRAFT' && (
                               <button onClick={() => handlePublish(rfq.id)} className="p-1.5 rounded-lg text-[#004643] hover:bg-[#D4EEEC] transition-colors" title="Publish">
                                 <Plus className="w-4 h-4" />

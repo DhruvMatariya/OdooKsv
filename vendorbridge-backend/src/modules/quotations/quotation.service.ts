@@ -41,7 +41,7 @@ export async function createQuotation(
 		throw new AppError('Total amount must be greater than 0', 400);
 	}
 
-	const quotationNumber = await generateNumber('QT', prisma.quotation);
+	const quotationNumber = await generateNumber('QT', prisma.quotation, 'quotationNumber');
 	const validUntil = new Date(input.validUntil);
 
 	const quotation = await prisma.$transaction(async (tx) => {
@@ -87,12 +87,46 @@ export async function listQuotationsForRfq(rfqId: string) {
 		where: { rfqId },
 		include: {
 			vendor: { select: { id: true, name: true, rating: true, email: true } },
+			rfq: { select: { id: true, rfqNumber: true, title: true } },
 			items: true,
 		},
 		orderBy: { createdAt: 'desc' },
 	});
 
-	return quotations;
+	return quotations.map(q => ({
+		...q,
+		items: q.items.map(item => ({
+			...item,
+			rfqItem: {
+				name: item.rfqItemName,
+				quantity: item.quantity,
+				unit: 'pcs' // Defaulting for now as we don't have direct link
+			}
+		}))
+	}));
+}
+
+export async function listAllQuotations() {
+	const quotations = await prisma.quotation.findMany({
+		include: {
+			vendor: { select: { id: true, name: true, rating: true, email: true } },
+			rfq: { select: { id: true, rfqNumber: true, title: true } },
+			items: true,
+		},
+		orderBy: { createdAt: 'desc' },
+	});
+
+	return quotations.map(q => ({
+		...q,
+		items: q.items.map(item => ({
+			...item,
+			rfqItem: {
+				name: item.rfqItemName,
+				quantity: item.quantity,
+				unit: 'pcs'
+			}
+		}))
+	}));
 }
 
 export async function listMyQuotations(vendorUserId: string) {
@@ -125,7 +159,7 @@ export async function compareQuotationsForRfq(rfqId: string) {
 	const quotations = await prisma.quotation.findMany({
 		where: { rfqId },
 		include: {
-			vendor: { select: { name: true, rating: true } },
+			vendor: { select: { id: true, name: true, rating: true } },
 			items: true,
 		},
 		orderBy: [{ totalAmount: 'asc' }, { deliveryDays: 'asc' }],
@@ -152,9 +186,22 @@ export async function compareQuotationsForRfq(rfqId: string) {
 			totalAmount: quotation.totalAmount,
 			deliveryDays: quotation.deliveryDays,
 			validUntil: quotation.validUntil,
+			status: quotation.status,
 			isLowestPrice: quotation.totalAmount === lowestPrice,
 			isFastestDelivery: quotation.deliveryDays === fastestDelivery,
-			items: quotation.items,
+			items: quotation.items.map((item) => {
+				const rfqItem = rfq.items.find((ri) => ri.name === item.rfqItemName);
+				return {
+					id: item.id,
+					rfqItem: {
+						name: item.rfqItemName,
+						quantity: rfqItem?.quantity || item.quantity,
+						unit: rfqItem?.unit || 'pcs',
+					},
+					unitPrice: item.unitPrice,
+					totalPrice: item.totalPrice,
+				};
+			}),
 		})),
 		lowestPriceId: quotations.find((quotation) => quotation.totalAmount === lowestPrice)?.id ?? null,
 		fastestDeliveryId: quotations.find((quotation) => quotation.deliveryDays === fastestDelivery)?.id ?? null,
@@ -214,6 +261,28 @@ export async function updateQuotation(id: string, vendorUserId: string, input: R
 		entity: 'Quotation',
 		entityId: updated.id,
 		description: `Quotation ${updated.quotationNumber} updated`,
+	});
+
+	return updated;
+}
+
+export async function updateQuotationStatus(id: string, status: QuotationStatus, userId: string) {
+	const quotation = await prisma.quotation.findUnique({ where: { id } });
+	if (!quotation) {
+		throw new AppError('Quotation not found', 404);
+	}
+
+	const updated = await prisma.quotation.update({
+		where: { id },
+		data: { status },
+	});
+
+	await logActivity({
+		userId,
+		action: 'QUOTATION_STATUS_UPDATED',
+		entity: 'Quotation',
+		entityId: updated.id,
+		description: `Quotation ${updated.quotationNumber} status updated to ${status}`,
 	});
 
 	return updated;

@@ -2,7 +2,7 @@ import { InvoiceStatus } from '@prisma/client';
 import { NextFunction, Response } from 'express';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import { AppError } from '../../middleware/error.middleware';
-import { createInvoice, emailInvoice, generateInvoicePdfById, getInvoiceById, updateInvoiceStatus } from './invoice.service';
+import { createInvoice, emailInvoice, generateInvoicePdfById, getInvoiceById, updateInvoiceStatus, listInvoices } from './invoice.service';
 
 export async function createInvoiceHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
 	try {
@@ -58,6 +58,18 @@ export async function updateInvoiceStatusHandler(req: AuthRequest, res: Response
 		}
 
 		const data = await updateInvoiceStatus(req.params.id, req.body.status as InvoiceStatus, req.user.id);
+		res.status(200).json({ success: true, data });
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function listInvoicesHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+	try {
+		if (!req.user) {
+			throw new AppError('Unauthorized', 401);
+		}
+		const data = await listInvoices(req.query as Record<string, string>, req.user);
 		res.status(200).json({ success: true, data });
 	} catch (error) {
 		next(error);

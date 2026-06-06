@@ -14,9 +14,9 @@ import { createVendorValidation, updateVendorValidation } from './vendor.validat
 
 const router = Router();
 
-router.get('/', authenticate, getAllVendors);
+router.get('/', authenticate, authorize(UserRole.ADMIN, UserRole.PROCUREMENT_OFFICER, UserRole.MANAGER), getAllVendors);
 router.post('/', authenticate, authorize(UserRole.ADMIN, UserRole.PROCUREMENT_OFFICER), createVendorValidation, validate, createVendorHandler);
-router.get('/:id', authenticate, getVendorHandler);
+router.get('/:id', authenticate, authorize(UserRole.ADMIN, UserRole.PROCUREMENT_OFFICER, UserRole.MANAGER), getVendorHandler);
 router.patch('/:id', authenticate, authorize(UserRole.ADMIN, UserRole.PROCUREMENT_OFFICER), updateVendorValidation, validate, updateVendorHandler);
 router.delete('/:id', authenticate, authorize(UserRole.ADMIN), deleteVendorHandler);
 

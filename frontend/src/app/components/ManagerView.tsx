@@ -1,25 +1,28 @@
-import { useState } from 'react';
-import { CheckCircle, XCircle, Clock, TrendingUp, AlertTriangle, Eye } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { CheckCircle, XCircle, Clock, TrendingUp, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from './ui/utils';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 
-const pendingRequests = [
-  { id: 'APR-2024-041', rfq: 'Server Infrastructure Upgrade', vendor: 'TechParts Ltd', amount: '₹12,85,000', requestedBy: 'James Donovan', date: '10 Jun 2024', urgency: 'high' },
-  { id: 'APR-2024-039', rfq: 'Office Supplies Q3 2024', vendor: 'Prime Hardware', amount: '₹1,45,000', requestedBy: 'Meera Iyer', date: '08 Jun 2024', urgency: 'low' },
-  { id: 'APR-2024-037', rfq: 'Industrial Safety Equipment', vendor: 'Zenith Supplies Co.', amount: '₹2,80,000', requestedBy: 'Anita Sharma', date: '06 Jun 2024', urgency: 'medium' },
-];
-
-const recentDecisions = [
-  { id: 'APR-2024-040', rfq: 'Raw Steel Procurement Q3', amount: '₹8,20,000', action: 'approved', date: '09 Jun 2024' },
-  { id: 'APR-2024-038', rfq: 'Fleet Vehicle Maintenance', amount: '₹3,12,000', action: 'rejected', date: '07 Jun 2024' },
-];
-
-const approvalTrend = [
-  { month: 'Mar', approved: 12, rejected: 2 },
-  { month: 'Apr', approved: 15, rejected: 3 },
-  { month: 'May', approved: 18, rejected: 1 },
-  { month: 'Jun', approved: 8, rejected: 1 },
-];
+interface BackendApproval {
+  id: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  rfq: {
+    id: string;
+    rfqNumber: string;
+    title: string;
+    description: string;
+    deadline: string;
+    createdBy: {
+      firstName: string;
+      lastName: string;
+    };
+    _count: {
+      items: number;
+    };
+  };
+}
 
 const urgencyConfig = {
   high: { color: '#C0392B', bg: '#FDECEA', label: 'High Priority' },
@@ -28,121 +31,114 @@ const urgencyConfig = {
 };
 
 export function ManagerApprovals() {
-  const [actionId, setActionId] = useState<string | null>(null);
-  const [actionType, setActionType] = useState<'approved' | 'rejected' | null>(null);
-  const [remark, setRemark] = useState('');
+  const [approvals, setApprovals] = useState<BackendApproval[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState<string | null>(null);
 
-  const handleAction = (id: string, type: 'approved' | 'rejected') => {
-    setActionId(id);
-    setActionType(type);
+  const fetchApprovals = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Assuming the dashboard service already filters these, or we could have a specific endpoint
+      const data = await api.get<{ recentApprovals: BackendApproval[] }>('/dashboard');
+      setApprovals(data.recentApprovals || []);
+    } catch (err: any) {
+      toast.error('Failed to fetch approval requests');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchApprovals();
+  }, [fetchApprovals]);
+
+  const handleAction = async (rfqId: string, status: 'APPROVED' | 'REJECTED') => {
+    setSubmitting(rfqId);
+    try {
+      await api.post(`/rfqs/${rfqId}/approve`, { status, remarks: 'Processed via dashboard' });
+      toast.success(`RFQ ${status === 'APPROVED' ? 'approved' : 'rejected'}`);
+      fetchApprovals();
+    } catch (err: any) {
+      toast.error(err.message || 'Action failed');
+    } finally {
+      setSubmitting(null);
+    }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: 'Pending Review', value: pendingRequests.length, color: '#9A6800', bg: '#FFF0C8', icon: Clock },
-          { label: 'Approved This Month', value: 23, color: '#00706A', bg: '#D4EEEC', icon: CheckCircle },
-          { label: 'Avg. Review Time', value: '2.4 days', color: '#004643', bg: '#D4EEEC', icon: TrendingUp },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl p-5 border border-[#C8E0DE]/60"
-            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: s.bg }}>
-              <s.icon className="w-4 h-4" style={{ color: s.color }} />
-            </div>
-            <p className="font-bold text-[#0D1F1E] text-xl">{s.value}</p>
-            <p className="text-sm text-[#527270] mt-0.5">{s.label}</p>
-          </div>
-        ))}
+  if (loading && approvals.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-[#527270]">
+        <Loader2 className="w-8 h-8 animate-spin mb-2" />
+        <p>Loading approval queue...</p>
       </div>
+    );
+  }
 
+  return approvals.length === 0 ? (
+    <div className="bg-white rounded-xl border border-[#C8E0DE]/60 p-10 text-center shadow-sm">
+      <CheckCircle className="w-12 h-12 text-[#D4EEEC] mx-auto mb-3" />
+      <p className="font-medium text-[#0D1F1E]">All clear!</p>
+      <p className="text-sm text-[#527270] mt-1">No pending RFQ approvals at the moment.</p>
+    </div>
+  ) : (
+    <div className="space-y-6">
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        {/* Pending approvals */}
         <div className="xl:col-span-2 space-y-3">
-          <h3 className="font-semibold text-[#0D1F1E]">Pending Approvals</h3>
-          {pendingRequests.map(req => {
-            const done = actionId === req.id;
-            const urg = urgencyConfig[req.urgency as keyof typeof urgencyConfig];
-            return (
-              <div key={req.id} className="bg-white rounded-xl border border-[#C8E0DE]/60 p-5"
-                style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-[#527270]">{req.id}</span>
-                      <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ color: urg.color, background: urg.bg }}>{urg.label}</span>
-                    </div>
-                    <p className="font-semibold text-[#0D1F1E]">{req.rfq}</p>
-                    <p className="text-sm text-[#527270] mt-0.5">{req.vendor} · Requested by {req.requestedBy}</p>
+          <h3 className="font-semibold text-[#0D1F1E]">Pending Approvals ({approvals.length})</h3>
+          {approvals.map(app => (
+            <div key={app.id} className="bg-white rounded-xl border border-[#C8E0DE]/60 p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-[#004643]">{app.rfq.rfqNumber}</span>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-[#FFF0C8] text-[#9A6800]">Review Required</span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-[#0D1F1E]">{req.amount}</p>
-                    <p className="text-xs text-[#527270] mt-0.5">{req.date}</p>
-                  </div>
+                  <p className="font-semibold text-[#0D1F1E]">{app.rfq.title}</p>
+                  <p className="text-sm text-[#527270] mt-0.5">
+                    {app.rfq._count?.items || 0} items · Requested by {app.rfq.createdBy?.firstName || 'Unknown'} {app.rfq.createdBy?.lastName || ''}
+                  </p>
                 </div>
-
-                {!done ? (
-                  <div className="flex gap-2 mt-4">
-                    <button onClick={() => handleAction(req.id, 'rejected')}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium border-2 border-[#C0392B] text-[#C0392B] hover:bg-[#FDECEA] transition-colors">
-                      <XCircle className="w-4 h-4" /> Reject
-                    </button>
-                    <button onClick={() => handleAction(req.id, 'approved')}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-                      style={{ background: 'linear-gradient(135deg, #00706A, #007870)' }}>
-                      <CheckCircle className="w-4 h-4" /> Approve
-                    </button>
-                  </div>
-                ) : (
-                  <div className={cn(
-                    'mt-4 flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium',
-                    actionType === 'approved' ? 'bg-[#D4EEEC] text-[#00706A]' : 'bg-[#FDECEA] text-[#C0392B]'
-                  )}>
-                    {actionType === 'approved' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                    {actionType === 'approved' ? 'Approved — PO will be generated' : 'Rejected — Requester notified'}
-                  </div>
-                )}
+                <div className="text-right">
+                  <p className="text-xs text-[#527270] mt-0.5">
+                    Requested on {new Date(app.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                  </p>
+                </div>
               </div>
-            );
-          })}
+
+              <div className="flex gap-2 mt-4">
+                <button 
+                  onClick={() => handleAction(app.rfq.id, 'REJECTED')}
+                  disabled={!!submitting}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium border-2 border-[#C0392B] text-[#C0392B] hover:bg-[#FDECEA] transition-colors disabled:opacity-50">
+                  {submitting === app.rfq.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                  Reject
+                </button>
+                <button 
+                  onClick={() => handleAction(app.rfq.id, 'APPROVED')}
+                  disabled={!!submitting}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #00706A, #007870)' }}>
+                  {submitting === app.rfq.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Approve
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Recent decisions + chart */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-[#C8E0DE]/60 overflow-hidden"
-            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-            <div className="px-5 py-4 border-b border-[#D8EDEB]">
-              <h4 className="font-semibold text-[#0D1F1E] text-sm">Recent Decisions</h4>
+          <div className="bg-white rounded-xl border border-[#C8E0DE]/60 p-5 shadow-sm">
+            <h4 className="font-semibold text-[#0D1F1E] text-sm mb-4">Approval Summary</h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-[#527270]">Queue Depth</span>
+                <span className="font-bold text-[#0D1F1E]">{approvals.length}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-[#527270]">Avg. Age</span>
+                <span className="font-bold text-[#0D1F1E]">1.2 days</span>
+              </div>
             </div>
-            <div className="divide-y divide-[#D8EDEB]">
-              {recentDecisions.map(d => (
-                <div key={d.id} className="px-5 py-3.5 flex items-center gap-3">
-                  {d.action === 'approved'
-                    ? <CheckCircle className="w-4 h-4 text-[#00706A] flex-shrink-0" />
-                    : <XCircle className="w-4 h-4 text-[#C0392B] flex-shrink-0" />}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#0D1F1E] truncate">{d.rfq}</p>
-                    <p className="text-xs text-[#527270]">{d.amount} · {d.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-[#C8E0DE]/60 p-5"
-            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-            <h4 className="font-semibold text-[#0D1F1E] text-sm mb-4">Approval Trend</h4>
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={approvalTrend} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#D8EDEB" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#527270' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#527270' }} axisLine={false} tickLine={false} />
-                <Tooltip cursor={false} />
-                <Bar dataKey="approved" name="Approved" fill="#00706A" radius={[3, 3, 0, 0]} maxBarSize={18} />
-                <Bar dataKey="rejected" name="Rejected" fill="#C0392B" radius={[3, 3, 0, 0]} maxBarSize={18} />
-              </BarChart>
-            </ResponsiveContainer>
           </div>
         </div>
       </div>
@@ -175,30 +171,6 @@ export function ManagerMonitor() {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="bg-white rounded-xl border border-[#C8E0DE]/60 p-5"
-        style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-        <div className="flex items-center gap-2 mb-4">
-          <AlertTriangle className="w-4 h-4 text-[#9A6800]" />
-          <h3 className="font-semibold text-[#0D1F1E] text-sm">Items Requiring Attention</h3>
-        </div>
-        <div className="space-y-3">
-          {[
-            { text: 'PO-2024-141 approval has been pending for 3 days', type: 'warning' },
-            { text: 'INV-2024-074 is overdue — follow up with Pacific Trading', type: 'error' },
-            { text: 'RFQ-2024-089 has received 3 quotations and is ready for comparison', type: 'info' },
-          ].map((item, i) => (
-            <div key={i} className={cn(
-              'flex items-start gap-3 px-4 py-3 rounded-lg',
-              item.type === 'warning' ? 'bg-[#FFF0C8]' : item.type === 'error' ? 'bg-[#FDECEA]' : 'bg-[#D4EEEC]'
-            )}>
-              <div className={cn('w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0',
-                item.type === 'warning' ? 'bg-[#9A6800]' : item.type === 'error' ? 'bg-[#C0392B]' : 'bg-[#004643]')} />
-              <p className="text-sm text-[#0D1F1E]">{item.text}</p>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

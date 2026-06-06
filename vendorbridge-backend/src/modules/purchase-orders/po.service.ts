@@ -30,7 +30,7 @@ export async function createPurchaseOrder(input: {
 	const taxRate = Number(input.taxRate ?? 18);
 	const taxAmount = quotation.totalAmount * (taxRate / 100);
 	const grandTotal = quotation.totalAmount + taxAmount;
-	const poNumber = await generateNumber('PO', prisma.purchaseOrder);
+	const poNumber = await generateNumber('PO', prisma.purchaseOrder, 'poNumber');
 
 	const purchaseOrder = await prisma.$transaction(async (tx) => {
 		await tx.quotation.update({ where: { id: quotation.id }, data: { status: QuotationStatus.ACCEPTED } });
@@ -86,6 +86,7 @@ export async function listPurchaseOrders(query: { status?: string; page?: string
 			include: {
 				quotation: { include: { vendor: true } },
 				vendor: true,
+				invoice: { select: { id: true, invoiceNumber: true, status: true } },
 			},
 			orderBy: { createdAt: 'desc' },
 		}),
@@ -107,6 +108,7 @@ export async function getPurchaseOrderById(id: string) {
 				},
 			},
 			vendor: true,
+			invoice: { select: { id: true, invoiceNumber: true, status: true } },
 		},
 	});
 

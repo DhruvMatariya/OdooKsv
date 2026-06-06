@@ -83,6 +83,38 @@ export async function approveRequest(id: string, userId: string, remarks?: strin
 	return updated;
 }
 
+export async function listApprovals(query: { status?: string }, user: { id: string; role: UserRole }) {
+	const where: any = {};
+	if (query.status) {
+		where.status = query.status.toUpperCase() as ApprovalStatus;
+	}
+
+	if (user.role === UserRole.MANAGER) {
+		where.approverId = user.id;
+	}
+
+	const approvals = await prisma.approval.findMany({
+		where,
+		include: {
+			rfq: {
+				include: {
+					createdBy: { select: { id: true, firstName: true, lastName: true } },
+					items: true,
+					quotations: {
+						where: { status: 'SUBMITTED' },
+						include: { vendor: true, items: true },
+						take: 1,
+					},
+				},
+			},
+			approver: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+		},
+		orderBy: { createdAt: 'desc' },
+	});
+
+	return approvals;
+}
+
 export async function rejectRequest(id: string, userId: string, remarks: string) {
 	const approval = await prisma.approval.findUnique({ where: { id } });
 	if (!approval) {

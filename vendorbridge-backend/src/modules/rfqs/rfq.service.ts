@@ -6,8 +6,11 @@ import { generateNumber, parsePagination } from '../../lib/service-utils';
 
 function ensureFutureDate(deadline: string): Date {
 	const parsed = new Date(deadline);
-	if (Number.isNaN(parsed.getTime()) || parsed <= new Date()) {
-		throw new AppError('Deadline must be a future date', 400);
+	const now = new Date();
+	now.setHours(0, 0, 0, 0);
+
+	if (Number.isNaN(parsed.getTime()) || parsed < now) {
+		throw new AppError('Deadline must be today or a future date', 400);
 	}
 
 	return parsed;
@@ -15,9 +18,9 @@ function ensureFutureDate(deadline: string): Date {
 
 export async function createRfq(input: {
 	title: string;
-	description: string;
+	description?: string;
 	deadline: string;
-	items: Array<{ name: string; description: string; quantity: number; unit: string }>;
+	items: Array<{ name: string; description?: string; quantity: number; unit: string }>;
 	vendorIds: string[];
 }, userId: string) {
 	const deadline = ensureFutureDate(input.deadline);
@@ -28,9 +31,10 @@ export async function createRfq(input: {
 			data: {
 				rfqNumber,
 				title: input.title,
-				description: input.description,
+				description: input.description || '',
 				deadline,
 				createdById: userId,
+				status: 'DRAFT', // Always starts as DRAFT
 			},
 		});
 
@@ -38,7 +42,7 @@ export async function createRfq(input: {
 			data: input.items.map((item) => ({
 				rfqId: createdRfq.id,
 				name: item.name,
-				description: item.description,
+				description: item.description || '',
 				quantity: Number(item.quantity),
 				unit: item.unit,
 			})),
@@ -48,6 +52,22 @@ export async function createRfq(input: {
 			data: input.vendorIds.map((vendorId) => ({ rfqId: createdRfq.id, vendorId })),
 		});
 
+		// Automatically create an approval request for Managers
+		// Find a manager to assign this to (could be refined to pick a specific one)
+		const manager = await tx.user.findFirst({
+			where: { role: UserRole.MANAGER },
+		});
+
+		if (manager) {
+			await tx.approval.create({
+				data: {
+					rfqId: createdRfq.id,
+					approverId: manager.id,
+					status: 'PENDING',
+				},
+			});
+		}
+
 		return createdRfq;
 	});
 
@@ -56,7 +76,7 @@ export async function createRfq(input: {
 		action: 'RFQ_CREATED',
 		entity: 'Rfq',
 		entityId: rfq.id,
-		description: `RFQ ${rfq.rfqNumber} created`,
+		description: `RFQ ${rfq.rfqNumber} created and sent for approval`,
 	});
 
 	return rfq;
@@ -122,6 +142,48 @@ export async function getRfqById(id: string) {
 	}
 
 	return rfq;
+}
+
+export async function approveRfq(id: string, userId: string, status: 'APPROVED' | 'REJECTED', remarks?: string) {
+	const approval = await prisma.approval.findUnique({
+		where: { rfqId: id },
+	});
+
+	if (!approval) {
+		throw new AppError('Approval request not found', 404);
+	}
+
+	if (approval.approverId !== userId) {
+		throw new AppError('You are not authorized to approve this RFQ', 403);
+	}
+
+	return await prisma.$transaction(async (tx) => {
+		const updatedApproval = await tx.approval.update({
+			where: { id: approval.id },
+			data: {
+				status,
+				remarks,
+				resolvedAt: new Date(),
+			},
+		});
+
+		if (status === 'APPROVED') {
+			await tx.rfq.update({
+				where: { id },
+				data: { status: 'PUBLISHED' },
+			});
+		}
+
+		await logActivity({
+			userId,
+			action: status === 'APPROVED' ? 'RFQ_APPROVED' : 'RFQ_REJECTED',
+			entity: 'Rfq',
+			entityId: id,
+			description: `RFQ ${status === 'APPROVED' ? 'approved' : 'rejected'} by manager`,
+		});
+
+		return updatedApproval;
+	});
 }
 
 export async function publishRfq(id: string, userId: string) {

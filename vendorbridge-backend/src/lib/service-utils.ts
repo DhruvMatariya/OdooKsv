@@ -12,11 +12,32 @@ export function parsePagination(query: PaginationInput): { page: number; limit: 
 
 export async function generateNumber(
   prefix: string,
-  model: { count: () => Promise<number> }
+  model: any,
+  fieldName: string = 'rfqNumber'
 ): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await model.count();
-  const sequence = String(count + 1).padStart(4, '0');
+  
+  const lastRecord = await model.findFirst({
+    where: {
+      [fieldName]: {
+        startsWith: `${prefix}-${year}-`
+      }
+    },
+    orderBy: {
+      [fieldName]: 'desc'
+    }
+  });
+
+  let nextSequence = 1;
+  if (lastRecord && lastRecord[fieldName]) {
+    const parts = (lastRecord[fieldName] as string).split('-');
+    const lastSequence = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastSequence)) {
+      nextSequence = lastSequence + 1;
+    }
+  }
+
+  const sequence = String(nextSequence).padStart(4, '0');
   return `${prefix}-${year}-${sequence}`;
 }
 

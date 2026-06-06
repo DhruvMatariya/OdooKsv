@@ -2,7 +2,7 @@ import { InvoiceStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../middleware/error.middleware';
 import { logActivity } from '../../lib/logger';
-import { generateNumber } from '../../lib/service-utils';
+import { generateNumber, parsePagination } from '../../lib/service-utils';
 import { generateInvoicePDF } from '../../lib/pdf';
 import { sendInvoiceEmail } from '../../lib/email';
 
@@ -31,7 +31,7 @@ export async function createInvoice(input: { purchaseOrderId: string; dueDate: s
 	const taxRate = Number(input.taxRate ?? 18);
 	const taxAmount = subtotal * (taxRate / 100);
 	const grandTotal = subtotal + taxAmount;
-	const invoiceNumber = await generateNumber('INV', prisma.invoice);
+	const invoiceNumber = await generateNumber('INV', prisma.invoice, 'invoiceNumber');
 
 	const invoice = await prisma.invoice.create({
 		data: {
@@ -129,4 +129,40 @@ export async function updateInvoiceStatus(id: string, status: InvoiceStatus, use
 	});
 
 	return updated;
+}
+
+export async function listInvoices(query: { status?: string; page?: string | number; limit?: string | number }, user: { role: string; vendorId?: string | null }) {
+	const { page, limit, skip } = parsePagination(query);
+	const where: Record<string, any> = {};
+
+	if (query.status) {
+		where.status = query.status.toUpperCase() as InvoiceStatus;
+	}
+
+	if (user.role === 'VENDOR') {
+		if (!user.vendorId) {
+			throw new AppError('Vendor ID not found for this user', 403);
+		}
+		where.purchaseOrder = { vendorId: user.vendorId };
+	}
+
+	const [invoices, total] = await Promise.all([
+		prisma.invoice.findMany({
+			where,
+			skip,
+			take: limit,
+			include: {
+				purchaseOrder: {
+					include: {
+						quotation: { include: { rfq: true, vendor: true } },
+						vendor: true,
+					},
+				},
+			},
+			orderBy: { createdAt: 'desc' },
+		}),
+		prisma.invoice.count({ where }),
+	]);
+
+	return { invoices, total, page, limit };
 }

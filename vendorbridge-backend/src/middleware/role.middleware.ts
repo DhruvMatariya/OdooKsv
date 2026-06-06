@@ -5,7 +5,9 @@ import { AppError } from './error.middleware';
 
 export function authorize(...roles: UserRole[]) {
 	return (req: AuthRequest, res: Response, next: NextFunction): void => {
+		console.log(`Authorizing user ${req.user?.email} with role ${req.user?.role} for roles: ${roles}`);
 		if (!req.user || !roles.includes(req.user.role)) {
+			console.error(`Permission denied for user ${req.user?.email}. Role ${req.user?.role} not in authorized list: ${roles}`);
 			next(new AppError('Forbidden: insufficient permissions', 403));
 			return;
 		}

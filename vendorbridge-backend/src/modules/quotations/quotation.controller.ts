@@ -5,8 +5,10 @@ import {
 	compareQuotationsForRfq,
 	createQuotation,
 	listQuotationsForRfq,
+	listAllQuotations,
 	listMyQuotations,
 	updateQuotation,
+	updateQuotationStatus,
 } from './quotation.service';
 
 export async function createQuotationHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
@@ -22,9 +24,36 @@ export async function createQuotationHandler(req: AuthRequest, res: Response, ne
 	}
 }
 
+export async function updateQuotationStatusHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+	try {
+		if (!req.user) {
+			throw new AppError('Unauthorized', 401);
+		}
+
+		const { status } = req.body;
+		if (!status) {
+			throw new AppError('Status is required', 400);
+		}
+
+		const data = await updateQuotationStatus(req.params.id, status, req.user.id);
+		res.status(200).json({ success: true, data });
+	} catch (error) {
+		next(error);
+	}
+}
+
 export async function listQuotationsHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
 	try {
 		const data = await listQuotationsForRfq(req.params.rfqId);
+		res.status(200).json({ success: true, data });
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function listAllQuotationsHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+	try {
+		const data = await listAllQuotations();
 		res.status(200).json({ success: true, data });
 	} catch (error) {
 		next(error);

@@ -114,9 +114,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        // Validation errors might come as an array
+        // Validation errors might come in 'details' or 'errors'
         let errorMsg = json.error || json.message || 'Signup failed';
-        if (Array.isArray(json.errors) && json.errors.length > 0) {
+        if (Array.isArray(json.details) && json.details.length > 0) {
+          errorMsg = json.details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+        } else if (Array.isArray(json.errors) && json.errors.length > 0) {
           errorMsg = json.errors[0].msg || errorMsg;
         }
         return { success: false, error: errorMsg };

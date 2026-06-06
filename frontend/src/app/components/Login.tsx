@@ -12,6 +12,7 @@ const countries = [
 ];
 
 const roles: Array<{ value: UserRole; label: string; desc: string }> = [
+  { value: 'admin', label: 'Admin', desc: 'Manage the entire platform' },
   { value: 'vendor', label: 'Vendor', desc: 'Submit quotations and track orders' },
 ];
 
@@ -65,7 +66,6 @@ export function Login() {
     if (!signupData.email?.trim()) errs.email = 'Required';
     else if (!/\S+@\S+\.\S+/.test(signupData.email)) errs.email = 'Invalid email';
     if (!signupData.phone?.trim()) errs.phone = 'Required';
-    if (!signupData.role) errs.role = 'Please select a role';
 
     if (Object.keys(errs).length) {
       setSignupErrors(errs);
@@ -93,11 +93,13 @@ export function Login() {
     if (!signupData.country) errs.country = 'Please select a country';
 
     // Role-specific validation
-    if ((signupData.role === 'vendor' || signupData.role === 'procurement') && !signupData.companyName?.trim()) {
-      errs.companyName = 'Required';
-    }
-    if (signupData.role === 'vendor' && !signupData.gstNumber?.trim()) {
-      errs.gstNumber = 'Required';
+    if (signupData.role === 'vendor') {
+      if (!signupData.companyName?.trim()) {
+        errs.companyName = 'Required';
+      }
+      if (!signupData.gstNumber?.trim()) {
+        errs.gstNumber = 'Required';
+      }
     }
 
     if (!signupPwd) errs.password = 'Required';
@@ -121,45 +123,9 @@ export function Login() {
       <div className="hidden lg:flex flex-col justify-between w-[42%] p-12 relative overflow-hidden"
         style={{ background: 'linear-gradient(145deg, #003330 0%, #004643 50%, #00706A 100%)' }}>
         {/* Decorative circles */}
-        <motion.div
-          animate={{
-            x: [0, 40, -20, 0],
-            y: [0, -30, 40, 0],
-            scale: [1, 1.1, 0.95, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5"
-        />
-        <motion.div
-          animate={{
-            x: [0, -50, 30, 0],
-            y: [0, 40, -20, 0],
-            scale: [1, 0.9, 1.05, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-white/5"
-        />
-        <motion.div
-          animate={{
-            x: [0, 30, -40, 0],
-            y: [0, 30, -30, 0],
-            scale: [1, 1.05, 0.9, 1],
-          }}
-          transition={{
-            duration: 22,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-white/5"
-        />
+        <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5" />
+        <div className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-white/5" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-white/5" />
 
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 opacity-10"
@@ -384,8 +350,26 @@ export function Login() {
                         </div>
                       </div>
 
+                      <div>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Select Role</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {roles.map(r => (
+                            <button key={r.value} type="button" onClick={() => updateSignup('role', r.value)}
+                              className={cn('text-left p-3 rounded-xl border transition-all', signupData.role === r.value ? 'bg-[#EBF7F6] border-[#004643] ring-1 ring-[#004643]' : 'bg-white border-[#C8E0DE] hover:border-[#004643]')}>
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-bold text-[#0D1F1E]">{r.label}</p>
+                                <div className={cn('w-4 h-4 rounded-full border flex items-center justify-center', signupData.role === r.value ? 'border-[#004643] bg-[#004643]' : 'border-[#C8E0DE]')}>
+                                  {signupData.role === r.value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                        {signupErrors.role && <p className="text-[10px] text-red-500 mt-1 ml-1">{signupErrors.role}</p>}
+                      </div>
+
                       <div className="pt-2">
-                        <p className="text-xs text-[#527270] mb-3">Registration is only available for Vendors. Internal roles must be invited by an administrator.</p>
+                        <p className="text-xs text-[#527270] mb-3">Public registration is available for Vendors and Admins.</p>
                       </div>
 
                       <button type="submit"
@@ -413,27 +397,27 @@ export function Login() {
                           {signupError}
                         </div>
                       )}
-                      {/* Dynamic Fields based on Role */}
-                      {(signupData.role === 'vendor' || signupData.role === 'procurement') && (
-                        <div>
-                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Company Name <span className="text-[#C0392B]">*</span></label>
-                          <input type="text" value={signupData.companyName || ''} onChange={e => updateSignup('companyName', e.target.value)}
-                            placeholder="Acme Corp"
-                            className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                              signupErrors.companyName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                          {signupErrors.companyName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.companyName}</p>}
-                        </div>
-                      )}
-
+                      {/* Vendor Specific Fields */}
                       {signupData.role === 'vendor' && (
-                        <div>
-                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">GST Number <span className="text-[#C0392B]">*</span></label>
-                          <input type="text" value={signupData.gstNumber || ''} onChange={e => updateSignup('gstNumber', e.target.value)}
-                            placeholder="22AAAAA0000A1Z5"
-                            className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                              signupErrors.gstNumber ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                          {signupErrors.gstNumber && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.gstNumber}</p>}
-                        </div>
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Company Name <span className="text-[#C0392B]">*</span></label>
+                            <input type="text" value={signupData.companyName || ''} onChange={e => updateSignup('companyName', e.target.value)}
+                              placeholder="Acme Corp"
+                              className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                                signupErrors.companyName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                            {signupErrors.companyName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.companyName}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">GST Number <span className="text-[#C0392B]">*</span></label>
+                            <input type="text" value={signupData.gstNumber || ''} onChange={e => updateSignup('gstNumber', e.target.value)}
+                              placeholder="22AAAAA0000A1Z5"
+                              className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                                signupErrors.gstNumber ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                            {signupErrors.gstNumber && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.gstNumber}</p>}
+                          </div>
+                        </>
                       )}
 
                       <div>

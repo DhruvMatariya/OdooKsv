@@ -6,6 +6,6 @@ import { getAnalyticsHandler } from './analytics.controller';
 
 const router = Router();
 
-router.get('/', authenticate, authorize(UserRole.ADMIN, UserRole.MANAGER), getAnalyticsHandler);
+router.get('/', authenticate, authorize(UserRole.ADMIN, UserRole.MANAGER, UserRole.PROCUREMENT_OFFICER), getAnalyticsHandler);
 
 export default router;

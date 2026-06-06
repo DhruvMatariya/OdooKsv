@@ -50,6 +50,7 @@ interface BackendDashboardData {
   totalVendors: number;
   totalSpend: number;
   monthlySpend: number;
+  recentApprovals: any[];
 }
 
 const statusConfig = {
@@ -219,6 +220,47 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Tables row */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {/* Recent Approvals (Only for Managers/Admins) */}
+        {(role === 'manager' || role === 'admin') && data.recentApprovals.length > 0 && (
+          <div className="bg-white rounded-xl border border-[#C8E0DE]/60 overflow-hidden xl:col-span-2"
+            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#D8EDEB]">
+              <h3 className="font-semibold text-[#0D1F1E] text-sm">Approvals Requiring Action</h3>
+              <button onClick={() => onNavigate('approvals')} className="text-xs text-[#004643] hover:underline flex items-center gap-1">
+                View all <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[#FFF8E6]">
+                    {['RFQ Number', 'Title', 'Requested By', 'Date', 'Action'].map(h => (
+                      <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-[#9A6800] uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recentApprovals.map((app, i) => (
+                    <tr key={app.id} className={cn('border-t border-[#D8EDEB] hover:bg-[#FFFBF2] transition-colors', i % 2 === 1 && 'bg-[#FFFCF5]')}>
+                      <td className="px-5 py-3.5 font-medium text-[#004643]">{app.rfq.rfqNumber}</td>
+                      <td className="px-5 py-3.5 text-[#0D1F1E]">{app.rfq.title}</td>
+                      <td className="px-5 py-3.5 text-[#527270]">{app.rfq.createdBy.firstName} {app.rfq.createdBy.lastName}</td>
+                      <td className="px-5 py-3.5 text-[#527270]">
+                        {new Date(app.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <button onClick={() => onNavigate('approvals')} className="text-xs font-semibold text-[#9A6800] hover:underline">
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Recent POs */}
         <div className="bg-white rounded-xl border border-[#C8E0DE]/60 overflow-hidden"
           style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>

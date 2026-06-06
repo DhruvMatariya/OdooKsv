@@ -8,7 +8,7 @@ import { createPoValidation, updatePoStatusValidation } from './po.validation';
 
 const router = Router();
 
-router.post('/', authenticate, authorize(UserRole.PROCUREMENT_OFFICER), createPoValidation, validate, createPurchaseOrderHandler);
+router.post('/', authenticate, authorize(UserRole.ADMIN, UserRole.PROCUREMENT_OFFICER), createPoValidation, validate, createPurchaseOrderHandler);
 router.get('/', authenticate, authorize(UserRole.ADMIN, UserRole.MANAGER, UserRole.PROCUREMENT_OFFICER, UserRole.VENDOR), listPurchaseOrdersHandler);
 router.get('/:id', authenticate, authorize(UserRole.ADMIN, UserRole.MANAGER, UserRole.PROCUREMENT_OFFICER), getPurchaseOrderHandler);
 router.patch('/:id/status', authenticate, authorize(UserRole.ADMIN, UserRole.MANAGER, UserRole.PROCUREMENT_OFFICER), updatePoStatusValidation, validate, updatePurchaseOrderStatusHandler);

@@ -1,16 +1,28 @@
 import { NextFunction, Response } from 'express';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import { AppError } from '../../middleware/error.middleware';
-import { createRfq, closeRfq, getRfqById, listRfqs, publishRfq } from './rfq.service';
+import { createRfq, closeRfq, getRfqById, listRfqs, publishRfq, approveRfq } from './rfq.service';
 
 export async function createRfqHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
 	try {
+		console.log('Create RFQ Request Body:', JSON.stringify(req.body, null, 2));
 		if (!req.user) {
 			throw new AppError('Unauthorized', 401);
 		}
 
 		const data = await createRfq(req.body, req.user.id);
 		res.status(201).json({ success: true, data });
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function approveRfqHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+	try {
+		if (!req.user) throw new AppError('Unauthorized', 401);
+		const { status, remarks } = req.body;
+		const data = await approveRfq(req.params.id, req.user.id, status, remarks);
+		res.status(200).json({ success: true, data });
 	} catch (error) {
 		next(error);
 	}
