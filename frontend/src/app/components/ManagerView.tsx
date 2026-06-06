@@ -38,9 +38,8 @@ export function ManagerApprovals() {
   const fetchApprovals = useCallback(async () => {
     setLoading(true);
     try {
-      // Assuming the dashboard service already filters these, or we could have a specific endpoint
-      const data = await api.get<{ recentApprovals: BackendApproval[] }>('/dashboard');
-      setApprovals(data.recentApprovals || []);
+      const data = await api.get<BackendApproval[]>('/approvals?status=PENDING');
+      setApprovals(Array.isArray(data) ? data : []);
     } catch (err: any) {
       toast.error('Failed to fetch approval requests');
     } finally {
@@ -136,7 +135,11 @@ export function ManagerApprovals() {
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-[#527270]">Avg. Age</span>
-                <span className="font-bold text-[#0D1F1E]">1.2 days</span>
+                <span className="font-bold text-[#0D1F1E]">
+                  {approvals.length > 0
+                    ? `${(approvals.reduce((s, a) => s + (Date.now() - new Date(a.createdAt).getTime()), 0) / approvals.length / 86400000).toFixed(1)} days`
+                    : '—'}
+                </span>
               </div>
             </div>
           </div>
@@ -147,16 +150,49 @@ export function ManagerApprovals() {
 }
 
 export function ManagerMonitor() {
+  const [stats, setStats] = useState<{ label: string; value: number | string; trend: string; color: string; bg: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [dash, analytics] = await Promise.all([
+          api.get<{ activeRFQs: number; pendingApprovals: number; totalVendors: number; recentInvoices: any[] }>('/dashboard'),
+          api.get<{ procurementStats: { totalPOs: number; totalInvoices: number } }>('/analytics?period=30'),
+        ]);
+        const overdue = (dash.recentInvoices || []).filter((inv: any) => inv.status !== 'PAID' && new Date(inv.dueDate) < new Date()).length;
+        setStats([
+          { label: 'Open RFQs', value: dash.activeRFQs, trend: 'published', color: '#004643', bg: '#D4EEEC' },
+          { label: 'Pending Approvals', value: dash.pendingApprovals, trend: 'awaiting action', color: '#9A6800', bg: '#FFF0C8' },
+          { label: 'Active Vendors', value: dash.totalVendors, trend: 'onboarded', color: '#00706A', bg: '#D4EEEC' },
+          { label: 'POs (30 days)', value: analytics.procurementStats.totalPOs, trend: `${analytics.procurementStats.totalInvoices} invoices`, color: '#C0392B', bg: '#FDECEA' },
+        ]);
+        if (overdue > 0) {
+          setStats(prev => prev.map(s => s.label === 'POs (30 days)' ? { ...s, trend: `${overdue} overdue invoices` } : s));
+        }
+      } catch {
+        setStats([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-[#527270]">
+        <Loader2 className="w-8 h-8 animate-spin mb-2" />
+        <p>Loading monitor...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <p className="text-[#527270] text-sm">Overview of all active procurement workflows</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[
-          { label: 'Open RFQs', value: 27, trend: '+8 this week', color: '#004643', bg: '#D4EEEC' },
-          { label: 'Pending POs', value: 14, trend: '3 high priority', color: '#9A6800', bg: '#FFF0C8' },
-          { label: 'Active Vendors', value: 24, trend: '+3 this month', color: '#00706A', bg: '#D4EEEC' },
-          { label: 'Overdue Invoices', value: 3, trend: 'Requires action', color: '#C0392B', bg: '#FDECEA' },
-        ].map(s => (
+        {stats.map(s => (
           <div key={s.label} className="bg-white rounded-xl p-5 border border-[#C8E0DE]/60"
             style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
             <div className="flex items-start justify-between">

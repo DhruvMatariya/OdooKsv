@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Eye, Send, Clock, CheckCircle, AlertCircle, Upload, Calendar, X } from 'lucide-react';
 import { cn } from './ui/utils';
 import type { Page } from './Sidebar';
-import { apiFetch } from '../utils/api';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 
 // ─── ACTIVE RFQs FOR VENDOR ─────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ export function VendorRFQs({ onNavigate }: { onNavigate: (page: Page) => void })
 
   const fetchRFQs = async () => {
     try {
-      const data = await apiFetch<any>('/rfqs');
+      const data = await api.get<{ rfqs: any[] }>('/rfqs');
       setRfqs(data.rfqs || []);
     } catch (err) {
       console.error(err);
@@ -103,7 +104,7 @@ function QuotationSubmitModal({ rfqId, onClose, onSubmitted }: { rfqId: string; 
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    apiFetch<any>(`/rfqs/${rfqId}`).then(setRfq);
+    api.get<any>(`/rfqs/${rfqId}`).then(setRfq);
   }, [rfqId]);
 
   if (!rfq) return null;
@@ -126,15 +127,11 @@ function QuotationSubmitModal({ rfqId, onClose, onSubmitted }: { rfqId: string; 
         }))
       };
 
-      await apiFetch(`/rfqs/${rfqId}/quotations`, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      
+      await api.post(`/rfqs/${rfqId}/quotations`, payload);
+      toast.success('Quotation submitted');
       onSubmitted();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to submit quotation');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit quotation');
     } finally {
       setSubmitting(false);
     }
@@ -224,6 +221,7 @@ function QuotationSubmitModal({ rfqId, onClose, onSubmitted }: { rfqId: string; 
 const qStatusConfig: Record<string, any> = {
   'SUBMITTED': { label: 'Under Review', color: '#9A6800', bg: '#FFF0C8' },
   'ACCEPTED': { label: 'Accepted', color: '#00706A', bg: '#D4EEEC' },
+  'REJECTED': { label: 'Rejected', color: '#C0392B', bg: '#FDECEA' },
   'DRAFT': { label: 'Draft', color: '#527270', bg: '#D8EDEB' },
 };
 
@@ -231,9 +229,9 @@ export function VendorQuotations() {
   const [quotations, setQuotations] = useState<any[]>([]);
 
   useEffect(() => {
-    apiFetch<any[]>('/quotations')
-      .then(data => setQuotations(data))
-      .catch(console.error);
+    api.get<any[]>('/quotations')
+      .then(data => setQuotations(Array.isArray(data) ? data : []))
+      .catch(() => setQuotations([]));
   }, []);
 
   return (
@@ -290,9 +288,9 @@ export function VendorOrders() {
   const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    apiFetch<any>('/purchase-orders')
+    api.get<{ purchaseOrders: any[] }>('/purchase-orders')
       .then(data => setOrders(data.purchaseOrders || []))
-      .catch(console.error);
+      .catch(() => setOrders([]));
   }, []);
 
   return (

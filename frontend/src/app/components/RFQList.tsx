@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Eye, Edit2, Trash2, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Plus, Eye, FileText, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
 import { cn } from './ui/utils';
 import type { Page } from './Sidebar';
 import { api } from '../lib/api';
@@ -48,7 +48,7 @@ export function RFQList({ onNavigate }: RFQListProps) {
     setError(null);
     try {
       let endpoint = '/rfqs?limit=100';
-      if (statusFilter !== 'All') endpoint += `&status=${statusFilter}`;
+      if (statusFilter !== 'All') endpoint += `&status=${statusFilter.toUpperCase()}`;
       
       const data = await api.get<{ rfqs: BackendRFQ[] }>(endpoint);
       setRfqs(data.rfqs);
@@ -71,7 +71,7 @@ export function RFQList({ onNavigate }: RFQListProps) {
 
   const handlePublish = async (id: string) => {
     try {
-      await api.patch(`/rfqs/${id}/publish`, {});
+      await api.post(`/rfqs/${id}/publish`, {});
       toast.success('RFQ published');
       fetchRfqs();
     } catch (err: any) {

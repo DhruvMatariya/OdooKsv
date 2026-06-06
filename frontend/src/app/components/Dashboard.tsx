@@ -1,42 +1,19 @@
 import { useState, useEffect } from 'react';
-
-import {
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  FileText,
-  ShoppingCart,
-  Receipt,
-  Plus,
-  ArrowRight,
-  MoreHorizontal,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react';
-
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from 'recharts';
-
+import { Clock, FileText, ShoppingCart, Receipt, Plus, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
+import { cn } from './ui/utils';
+import type { Page } from './Sidebar';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 
-import { cn } from './ui/utils';
-import type { Page } from './Sidebar';
-import { api } from '../lib/api';
-import { toast } from 'sonner';
-import { cn } from './ui/utils';
-import type { Page } from './Sidebar';
-import { api } from '../lib/api';
-import { toast } from 'sonner';
+function poVendorName(po: any) {
+  return po.vendor?.name ?? po.quotation?.vendor?.name ?? '—';
+}
+
+function invVendorName(inv: any) {
+  return inv.purchaseOrder?.vendor?.name ?? inv.purchaseOrder?.quotation?.vendor?.name ?? '—';
+}
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
@@ -183,39 +160,23 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-3">
-<div className="flex flex-wrap gap-3">
-  {role !== 'procurement' && (
-    <>
-      <button
-        onClick={() => onNavigate('rfq-create')}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-        style={{
-          background: 'linear-gradient(135deg, #004643, #00706A)',
-          boxShadow: '0 4px 12px rgba(0,70,67,0.3)',
-        }}
-      >
-        <Plus className="w-4 h-4" />
-        Create RFQ
-      </button>
-
-      <button
-        onClick={() => onNavigate('vendors')}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#004643] text-[#004643] bg-white hover:bg-[#D4EEEC] transition-colors"
-      >
-        <Plus className="w-4 h-4" />
-        Add Vendor
-      </button>
-    </>
-  )}
-
-  <button
-    onClick={() => onNavigate('reports')}
-    className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#C8E0DE] text-[#527270] bg-white hover:bg-[#EBF7F6] transition-colors"
-  >
-    View Reports
-    <ArrowRight className="w-4 h-4" />
-  </button>
-</div>
+        {(role === 'procurement' || role === 'admin') && (
+          <>
+            <button onClick={() => onNavigate('rfq-create')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 12px rgba(0,70,67,0.3)' }}>
+              <Plus className="w-4 h-4" /> Create RFQ
+            </button>
+            <button onClick={() => onNavigate('vendors')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#004643] text-[#004643] bg-white hover:bg-[#D4EEEC] transition-colors">
+              <Plus className="w-4 h-4" /> Add Vendor
+            </button>
+          </>
+        )}
+        <button onClick={() => onNavigate('reports')}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border border-[#C8E0DE] text-[#527270] bg-white hover:bg-[#EBF7F6] transition-colors">
+          View Reports <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Tables row */}
@@ -226,7 +187,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#D8EDEB]">
               <h3 className="font-semibold text-[#0D1F1E] text-sm">Approvals Requiring Action</h3>
-              <button onClick={() => onNavigate('approvals')} className="text-xs text-[#004643] hover:underline flex items-center gap-1">
+              <button onClick={() => onNavigate(role === 'manager' ? 'manager-approvals' : 'approvals')} className="text-xs text-[#004643] hover:underline flex items-center gap-1">
                 View all <ArrowRight className="w-3 h-3" />
               </button>
             </div>
@@ -249,7 +210,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         {new Date(app.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                       </td>
                       <td className="px-5 py-3.5">
-                        <button onClick={() => onNavigate('approvals')} className="text-xs font-semibold text-[#9A6800] hover:underline">
+                        <button onClick={() => onNavigate(role === 'manager' ? 'manager-approvals' : 'approvals')} className="text-xs font-semibold text-[#9A6800] hover:underline">
                           Review
                         </button>
                       </td>
@@ -288,7 +249,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   data.recentPurchaseOrders.map((po, i) => (
                     <tr key={po.id} className={cn('border-t border-[#D8EDEB] hover:bg-[#EBF7F6] transition-colors cursor-pointer', i % 2 === 1 && 'bg-[#EEF7F6]')}>
                       <td className="px-5 py-3.5 font-medium text-[#004643]">{po.poNumber}</td>
-                      <td className="px-5 py-3.5 text-[#0D1F1E]">{po.vendor.name}</td>
+                      <td className="px-5 py-3.5 text-[#0D1F1E]">{poVendorName(po)}</td>
                       <td className="px-5 py-3.5 font-medium text-[#0D1F1E]">₹{po.totalAmount.toLocaleString('en-IN')}</td>
                       <td className="px-5 py-3.5"><StatusBadge status={po.status} /></td>
                     </tr>
@@ -324,7 +285,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   data.recentInvoices.map((inv, i) => (
                     <tr key={inv.id} className={cn('border-t border-[#D8EDEB] hover:bg-[#EBF7F6] transition-colors cursor-pointer', i % 2 === 1 && 'bg-[#EEF7F6]')}>
                       <td className="px-5 py-3.5 font-medium text-[#004643]">{inv.invoiceNumber}</td>
-                      <td className="px-5 py-3.5 text-[#0D1F1E]">{inv.purchaseOrder.vendor.name}</td>
+                      <td className="px-5 py-3.5 text-[#0D1F1E]">{invVendorName(inv)}</td>
                       <td className="px-5 py-3.5 font-medium text-[#0D1F1E]">₹{inv.grandTotal.toLocaleString('en-IN')}</td>
                       <td className="px-5 py-3.5"><StatusBadge status={inv.status} /></td>
                     </tr>

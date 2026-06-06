@@ -10,6 +10,7 @@ import { RFQCreate } from './components/RFQCreate';
 import { QuotationComparison } from './components/QuotationComparison';
 import { ApprovalWorkflow } from './components/ApprovalWorkflow';
 import { PurchaseOrders } from './components/PurchaseOrders';
+import { Invoices } from './components/Invoices';
 import { ActivityLogs } from './components/ActivityLogs';
 import { Reports } from './components/Reports';
 import { VendorRFQs, VendorQuotations, VendorOrders } from './components/VendorPortal';
@@ -139,7 +140,7 @@ function AppShell() {
       case 'quotations': return <QuotationComparison rfqId={activeRfqId || undefined} onNavigate={navigate} />;
       case 'approvals': return <ApprovalWorkflow />;
       case 'purchase-orders': return <PurchaseOrders />;
-      case 'invoices': return <PurchaseOrders />;
+      case 'invoices': return <Invoices />;
       case 'reports': return <Reports />;
       case 'activity-logs': return <ActivityLogs />;
 
@@ -174,34 +175,9 @@ function AppShell() {
       <div
         className="transition-all duration-300 ease-in-out flex flex-col min-h-screen"
         style={{ marginLeft: sidebarWidth }}>
-        <Navbar pageTitle={pageTitles[currentPage] || 'VendorBridge'} />
+        <Navbar pageTitle={pageTitles[currentPage] || 'VendorBridge'} onNavigate={navigate} />
 
         <main className="flex-1 p-6 lg:p-8">
-          {/* Context-aware banners */}
-          {currentPage === 'rfq-list' && role === 'procurement' && (
-            <div className="mb-5 p-3.5 bg-[#D4EEEC] border border-[#004643]/20 rounded-xl flex items-center gap-3">
-              <div className="w-1 h-9 bg-[#004643] rounded-full" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-[#0D1F1E]">RFQ-2024-088 is ready for comparison</p>
-                <p className="text-xs text-[#527270]">6 quotations received from 3 vendors — compare and proceed</p>
-              </div>
-              <button onClick={() => navigate('quotations')}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#004643] border border-[#004643]/30 hover:bg-[#004643] hover:text-white transition-all whitespace-nowrap">
-                Compare Now →
-              </button>
-            </div>
-          )}
-
-          {currentPage === 'manager-approvals' && (
-            <div className="mb-5 p-3.5 bg-[#FFF0C8] border border-[#9A6800]/20 rounded-xl flex items-center gap-3">
-              <div className="w-1 h-9 bg-[#9A6800] rounded-full" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-[#0D1F1E]">3 requests pending your approval</p>
-                <p className="text-xs text-[#527270]">Including 1 high-priority item over ₹10L</p>
-              </div>
-            </div>
-          )}
-
           {renderPage()}
         </main>
       </div>

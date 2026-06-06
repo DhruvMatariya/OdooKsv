@@ -7,11 +7,15 @@ import { toast } from 'sonner';
 interface BackendPO {
   id: string;
   poNumber: string;
-  vendor: { name: string };
+  vendor?: { name: string };
   totalAmount: number;
   status: string;
   createdAt: string;
-  quotation: { rfq: { title: string } };
+  quotation: { vendor?: { name: string }; rfq?: { title: string } };
+}
+
+function poVendorName(po: BackendPO) {
+  return po.vendor?.name ?? po.quotation?.vendor?.name ?? '—';
 }
 
 const statusConfig = {
@@ -54,7 +58,7 @@ export function PurchaseOrders() {
 
   const filtered = pos.filter(o =>
     o.poNumber.toLowerCase().includes(search.toLowerCase()) ||
-    o.vendor.name.toLowerCase().includes(search.toLowerCase())
+    poVendorName(o).toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -104,9 +108,9 @@ export function PurchaseOrders() {
                     <tr key={po.id} className={cn('border-t border-[#D8EDEB] hover:bg-[#EEF7F6] transition-colors', i % 2 === 1 && 'bg-[#EEF7F6]')}>
                       <td className="px-5 py-4 font-medium text-[#004643]">{po.poNumber}</td>
                       <td className="px-5 py-4">
-                        <p className="text-[#0D1F1E] font-medium">{po.quotation.rfq.title}</p>
+                        <p className="text-[#0D1F1E] font-medium">{po.quotation?.rfq?.title ?? '—'}</p>
                       </td>
-                      <td className="px-5 py-4 text-[#0D1F1E]">{po.vendor.name}</td>
+                      <td className="px-5 py-4 text-[#0D1F1E]">{poVendorName(po)}</td>
                       <td className="px-5 py-4 font-semibold text-[#0D1F1E]">₹{po.totalAmount.toLocaleString('en-IN')}</td>
                       <td className="px-5 py-4 text-[#527270] text-xs">
                         {new Date(po.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
