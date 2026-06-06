@@ -8,12 +8,16 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  name         String
-  email        String        @unique
-  password     String
-  role         UserRole
-  vendorId     String?       @unique
+  id             String        @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String        @unique
+  password       String
+  phone          String?
+  country        String?
+  additionalInfo String?
+  role           UserRole
+  vendorId       String?       @unique
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   activityLogs ActivityLog[]
@@ -27,11 +31,11 @@ model Vendor {
   name           String
   email          String          @unique
   phone          String
-  address        String
-  city           String
-  state          String
+  address        String?
+  city           String?
+  state          String?
   gstNumber      String          @unique
-  category       VendorCategory
+  category       VendorCategory?
   status         VendorStatus    @default(ACTIVE)
   rating         Float           @default(0)
   totalOrders    Int             @default(0)

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, FileText, MessageSquare, CheckSquare,
-  ShoppingCart, Receipt, BarChart2, Activity, Settings,
+  ShoppingCart, Receipt, BarChart2, Activity,
   ChevronLeft, ChevronRight, UserCog, Send
 } from 'lucide-react';
 import { cn } from './ui/utils';
@@ -13,8 +13,7 @@ export type Page =
   | 'reports' | 'activity-logs'
   | 'vendor-rfqs' | 'vendor-quotations' | 'vendor-orders'
   | 'manager-approvals' | 'manager-monitor'
-  | 'user-management'
-  | 'settings';
+  | 'user-management';
 
 interface NavItem {
   id: Page;
@@ -39,7 +38,6 @@ const navItems: NavItem[] = [
   { id: 'manager-approvals', label: 'Approvals', icon: CheckSquare, roles: ['manager'] },
   { id: 'manager-monitor', label: 'Procurement Monitor', icon: BarChart2, roles: ['manager'] },
   { id: 'user-management', label: 'User Management', icon: UserCog, roles: ['admin'] },
-  { id: 'settings', label: 'Settings', icon: Settings, roles: ['procurement', 'vendor', 'manager', 'admin'] },
 ];
 
 interface SidebarProps {

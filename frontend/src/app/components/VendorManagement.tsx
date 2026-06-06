@@ -1,47 +1,150 @@
-import { useState } from 'react';
-import { Search, Plus, Eye, Edit2, Ban, X, ChevronDown, CheckCircle, Building2, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Plus, Eye, Edit2, Ban, X, ChevronDown, CheckCircle, Building2, Phone, Mail, MapPin, CreditCard, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from './ui/utils';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 
-const vendors = [
-  { id: 1, name: 'Zenith Supplies Co.', initials: 'ZS', category: 'Raw Materials', gst: '29ABCDE1234F1Z5', contact: 'Rajan Mehta', email: 'rajan@zenith.co', phone: '+91 98765 43210', status: 'active', gstVerified: true },
-  { id: 2, name: 'TechParts Ltd', initials: 'TP', category: 'Electronics', gst: '27FGHIJ5678K2Y6', contact: 'Sunita Patel', email: 'sunita@techparts.in', phone: '+91 87654 32109', status: 'active', gstVerified: true },
-  { id: 3, name: 'Global Metals Inc.', initials: 'GM', category: 'Metals & Alloys', gst: '07KLMNO9012L3X7', contact: 'Arjun Singh', email: 'arjun@globalmetals.com', phone: '+91 76543 21098', status: 'active', gstVerified: false },
-  { id: 4, name: 'Pacific Trading', initials: 'PT', category: 'Chemicals', gst: '19PQRST3456M4W8', contact: 'Priya Sharma', email: 'priya@pacific.trade', phone: '+91 65432 10987', status: 'inactive', gstVerified: true },
-  { id: 5, name: 'FastShip Logistics', initials: 'FL', category: 'Logistics', gst: '33UVWXY7890N5V9', contact: 'Vikram Nair', email: 'vikram@fastship.in', phone: '+91 54321 09876', status: 'active', gstVerified: true },
-  { id: 6, name: 'Apex Components', initials: 'AC', category: 'Electronics', gst: '06ZABCD2345O6U0', contact: 'Deepa Kumar', email: 'deepa@apex.com', phone: '+91 43210 98765', status: 'blacklisted', gstVerified: false },
-  { id: 7, name: 'Prime Hardware', initials: 'PH', category: 'Tools & Hardware', gst: '24EFGHI6789P7T1', contact: 'Suresh Reddy', email: 'suresh@prime.hw', phone: '+91 32109 87654', status: 'active', gstVerified: true },
-  { id: 8, name: 'EcoPlast Industries', initials: 'EP', category: 'Plastics', gst: '12JKLMN0123Q8S2', contact: 'Kavya Menon', email: 'kavya@ecoplast.in', phone: '+91 21098 76543', status: 'active', gstVerified: true },
-];
+interface BackendVendor {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  gstNumber: string;
+  category: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  rating: number;
+  totalOrders: number;
+  createdAt: string;
+  _count?: {
+    quotations: number;
+    purchaseOrders: number;
+  };
+}
 
 const statusConfig = {
-  active: { label: 'Active', color: '#00706A', bg: '#D4EEEC' },
-  inactive: { label: 'Inactive', color: '#527270', bg: '#D8EDEB' },
-  blacklisted: { label: 'Blacklisted', color: '#C0392B', bg: '#FDECEA' },
+  ACTIVE: { label: 'Active', color: '#00706A', bg: '#D4EEEC' },
+  INACTIVE: { label: 'Inactive', color: '#527270', bg: '#D8EDEB' },
+  BLACKLISTED: { label: 'Blacklisted', color: '#C0392B', bg: '#FDECEA' },
 };
 
-const categories = ['All Categories', 'Raw Materials', 'Electronics', 'Metals & Alloys', 'Chemicals', 'Logistics', 'Tools & Hardware', 'Plastics'];
-const statusFilters = ['All', 'Active', 'Inactive', 'Blacklisted'];
+const categories = ['All Categories', 'IT', 'Logistics', 'Office Supplies', 'Manufacturing'];
+const statusFilters = ['All', 'Active', 'Inactive'];
 
 export function VendorManagement() {
+  const [vendors, setVendors] = useState<BackendVendor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All Categories');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [gstOnly, setGstOnly] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedVendor, setSelectedVendor] = useState<typeof vendors[0] | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<BackendVendor | null>(null);
   const [drawerMode, setDrawerMode] = useState<'add' | 'edit'>('add');
+  const [submitting, setSubmitting] = useState(false);
 
-  const filtered = vendors.filter(v => {
-    const matchSearch = v.name.toLowerCase().includes(search.toLowerCase()) ||
-      v.contact.toLowerCase().includes(search.toLowerCase());
-    const matchCat = category === 'All Categories' || v.category === category;
-    const matchStatus = statusFilter === 'All' || v.status === statusFilter.toLowerCase();
-    const matchGst = !gstOnly || v.gstVerified;
-    return matchSearch && matchCat && matchStatus && matchGst;
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    gstNumber: '',
+    category: 'IT',
+    status: 'ACTIVE',
   });
 
-  const openAdd = () => { setDrawerMode('add'); setSelectedVendor(null); setDrawerOpen(true); };
-  const openEdit = (v: typeof vendors[0]) => { setDrawerMode('edit'); setSelectedVendor(v); setDrawerOpen(true); };
+  const fetchVendors = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let endpoint = '/vendors?limit=100';
+      if (search) endpoint += `&search=${encodeURIComponent(search)}`;
+      if (category !== 'All Categories') endpoint += `&category=${category}`;
+      if (statusFilter !== 'All') endpoint += `&status=${statusFilter}`;
+      
+      const data = await api.get<{ vendors: BackendVendor[] }>(endpoint);
+      setVendors(data.vendors);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch vendors');
+      toast.error('Error fetching vendors');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, category, statusFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchVendors();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [fetchVendors]);
+
+  const handleOpenDrawer = (mode: 'add' | 'edit', vendor: BackendVendor | null = null) => {
+    setDrawerMode(mode);
+    if (vendor) {
+      setSelectedVendor(vendor);
+      setFormData({
+        name: vendor.name,
+        email: vendor.email,
+        phone: vendor.phone,
+        address: vendor.address || '',
+        city: vendor.city || '',
+        state: vendor.state || '',
+        gstNumber: vendor.gstNumber,
+        category: vendor.category,
+        status: vendor.status,
+      });
+    } else {
+      setSelectedVendor(null);
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        gstNumber: '',
+        category: 'IT',
+        status: 'ACTIVE',
+      });
+    }
+    setDrawerOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      if (drawerMode === 'edit' && selectedVendor) {
+        await api.patch(`/vendors/${selectedVendor.id}`, formData);
+        toast.success('Vendor updated successfully');
+      } else {
+        await api.post('/vendors', formData);
+        toast.success('Vendor added successfully');
+      }
+      setDrawerOpen(false);
+      fetchVendors();
+    } catch (err: any) {
+      toast.error(err.message || 'Action failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeactivate = async (id: string) => {
+    if (!confirm('Are you sure you want to deactivate this vendor?')) return;
+    try {
+      await api.patch(`/vendors/${id}`, { status: 'INACTIVE' });
+      toast.success('Vendor deactivated');
+      fetchVendors();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to deactivate vendor');
+    }
+  };
 
   return (
     <div className="space-y-5 relative">
@@ -50,7 +153,7 @@ export function VendorManagement() {
         <div>
           <p className="text-[#527270] text-sm">Manage your supplier network</p>
         </div>
-        <button onClick={openAdd}
+        <button onClick={() => handleOpenDrawer('add')}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
           style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 12px rgba(0,70,67,0.3)' }}>
           <Plus className="w-4 h-4" /> Add Vendor
@@ -70,7 +173,7 @@ export function VendorManagement() {
         <div className="relative">
           <select value={category} onChange={e => setCategory(e.target.value)}
             className="appearance-none pl-3 pr-8 py-2 border border-[#C8E0DE] rounded-lg text-sm text-[#0D1F1E] bg-white focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all">
-            {categories.map(c => <option key={c}>{c}</option>)}
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#527270] pointer-events-none" />
         </div>
@@ -86,163 +189,145 @@ export function VendorManagement() {
             </button>
           ))}
         </div>
-
-        <label className="flex items-center gap-2 cursor-pointer">
-          <div onClick={() => setGstOnly(!gstOnly)}
-            className={cn('relative w-9 h-5 rounded-full transition-colors', gstOnly ? 'bg-[#004643]' : 'bg-[#C8E0DE]')}>
-            <span className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', gstOnly ? 'translate-x-4' : 'translate-x-0.5')} />
-          </div>
-          <span className="text-sm text-[#527270]">GST Verified</span>
-        </label>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-[#C8E0DE]/60 overflow-hidden"
         style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[900px]">
-            <thead>
-              <tr className="bg-[#EBF7F6] border-b border-[#C8E0DE]/60">
-                <th className="px-5 py-3.5 text-left">
-                  <input type="checkbox" className="rounded border-[#C8E0DE]" />
-                </th>
-                {['Vendor', 'Category', 'GST Number', 'Contact Person', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-[#527270] uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-16 text-[#527270]">
-                    <Building2 className="w-12 h-12 text-[#C8E0DE] mx-auto mb-3" />
-                    <p className="font-medium text-[#0D1F1E]">No vendors found</p>
-                    <p className="text-sm mt-1">Try adjusting your filters</p>
-                  </td>
+          {loading && vendors.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-[#527270]">
+              <Loader2 className="w-8 h-8 animate-spin mb-2" />
+              <p>Loading vendors...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-20 text-red-500">
+              <AlertCircle className="w-8 h-8 mb-2" />
+              <p>{error}</p>
+              <button onClick={() => fetchVendors()} className="mt-4 text-sm font-medium text-[#004643] underline">Try again</button>
+            </div>
+          ) : (
+            <table className="w-full text-sm min-w-[900px]">
+              <thead>
+                <tr className="bg-[#EBF7F6] border-b border-[#C8E0DE]/60">
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-[#527270] uppercase tracking-wide">Vendor</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-[#527270] uppercase tracking-wide">Category</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-[#527270] uppercase tracking-wide">GST Number</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-[#527270] uppercase tracking-wide">Status</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-[#527270] uppercase tracking-wide">Actions</th>
                 </tr>
-              ) : filtered.map((v, i) => (
-                <tr key={v.id} className={cn('border-t border-[#D8EDEB] hover:bg-[#EEF7F6] transition-colors', i % 2 === 1 && 'bg-[#EEF7F6]')}>
-                  <td className="px-5 py-4"><input type="checkbox" className="rounded border-[#C8E0DE]" /></td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#D4EEEC] flex items-center justify-center text-[#004643] font-semibold flex-shrink-0" style={{ fontSize: 11 }}>
-                        {v.initials}
-                      </div>
-                      <div>
-                        <p className="font-medium text-[#0D1F1E]">{v.name}</p>
-                        <p className="text-xs text-[#527270]">{v.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-[#527270]">{v.category}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[#0D1F1E] font-mono text-xs">{v.gst}</span>
-                      {v.gstVerified && <CheckCircle className="w-3.5 h-3.5 text-[#00706A]" />}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div>
-                      <p className="text-[#0D1F1E] font-medium">{v.contact}</p>
-                      <p className="text-xs text-[#527270]">{v.phone}</p>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium"
-                      style={{ color: statusConfig[v.status as keyof typeof statusConfig].color, background: statusConfig[v.status as keyof typeof statusConfig].bg }}>
-                      {statusConfig[v.status as keyof typeof statusConfig].label}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg text-[#527270] hover:bg-[#D4EEEC] hover:text-[#004643] transition-colors" title="View">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg text-[#527270] hover:bg-[#D4EEEC] hover:text-[#004643] transition-colors" title="Edit">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button className="p-1.5 rounded-lg text-[#527270] hover:bg-[#FDECEA] hover:text-[#C0392B] transition-colors" title="Deactivate">
-                        <Ban className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-t border-[#D8EDEB] bg-[#EBF7F6]">
-          <p className="text-xs text-[#527270]">Showing {filtered.length} of {vendors.length} vendors</p>
-          <div className="flex items-center gap-1">
-            {[1, 2, 3].map(n => (
-              <button key={n} className={cn(
-                'w-7 h-7 rounded-lg text-xs font-medium transition-colors',
-                n === 1 ? 'bg-[#004643] text-white' : 'text-[#527270] hover:bg-[#D4EEEC]'
-              )}>{n}</button>
-            ))}
-          </div>
+              </thead>
+              <tbody>
+                {vendors.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-16 text-[#527270]">
+                      <Building2 className="w-12 h-12 text-[#C8E0DE] mx-auto mb-3" />
+                      <p className="font-medium text-[#0D1F1E]">No vendors found</p>
+                    </td>
+                  </tr>
+                ) : (
+                  vendors.map((v, i) => (
+                    <tr key={v.id} className={cn('border-t border-[#D8EDEB] hover:bg-[#EEF7F6] transition-colors', i % 2 === 1 && 'bg-[#EEF7F6]')}>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#D4EEEC] flex items-center justify-center text-[#004643] font-semibold flex-shrink-0" style={{ fontSize: 11 }}>
+                            {v.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#0D1F1E]">{v.name}</p>
+                            <p className="text-xs text-[#527270]">{v.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-[#527270]">{v.category}</td>
+                      <td className="px-5 py-4">
+                        <span className="text-[#0D1F1E] font-mono text-xs">{v.gstNumber}</span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium"
+                          style={{ color: statusConfig[v.status]?.color, background: statusConfig[v.status]?.bg }}>
+                          {statusConfig[v.status]?.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => handleOpenDrawer('edit', v)} className="p-1.5 rounded-lg text-[#527270] hover:bg-[#D4EEEC] hover:text-[#004643] transition-colors" title="Edit">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDeactivate(v.id)} className="p-1.5 rounded-lg text-[#527270] hover:bg-[#FDECEA] hover:text-[#C0392B] transition-colors" title="Deactivate">
+                            <Ban className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
       {/* Drawer */}
       {drawerOpen && (
         <>
-          <div className="fixed inset-0 bg-black/30 z-40 backdrop-blur-[2px]" onClick={() => setDrawerOpen(false)} />
+          <div className="fixed inset-0 bg-black/30 z-40 backdrop-blur-[2px]" onClick={() => !submitting && setDrawerOpen(false)} />
           <div className="fixed right-0 top-0 h-full w-full max-w-[440px] bg-white z-50 flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#C8E0DE]">
               <div>
                 <h3 className="font-semibold text-[#0D1F1E]">{drawerMode === 'add' ? 'Add New Vendor' : `Edit: ${selectedVendor?.name}`}</h3>
-                <p className="text-xs text-[#527270] mt-0.5">Fill in the vendor details below</p>
               </div>
-              <button onClick={() => setDrawerOpen(false)} className="p-2 rounded-lg hover:bg-[#EBF7F6] text-[#527270]">
+              <button onClick={() => setDrawerOpen(false)} disabled={submitting} className="p-2 rounded-lg hover:bg-[#EBF7F6] text-[#527270]">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {[
-                { label: 'Vendor Name', placeholder: 'e.g. Zenith Supplies Co.', icon: Building2, defaultVal: selectedVendor?.name },
-                { label: 'Category', placeholder: 'e.g. Raw Materials', icon: null, defaultVal: selectedVendor?.category },
-                { label: 'GST Number', placeholder: 'e.g. 29ABCDE1234F1Z5', icon: null, defaultVal: selectedVendor?.gst },
-                { label: 'PAN Number', placeholder: 'e.g. ABCDE1234F', icon: null, defaultVal: '' },
-                { label: 'Contact Person', placeholder: 'e.g. Rajan Mehta', icon: null, defaultVal: selectedVendor?.contact },
-                { label: 'Email', placeholder: 'contact@vendor.com', icon: Mail, defaultVal: selectedVendor?.email },
-                { label: 'Phone', placeholder: '+91 98765 43210', icon: Phone, defaultVal: selectedVendor?.phone },
-                { label: 'Address', placeholder: '123 Business District, Mumbai', icon: MapPin, defaultVal: '' },
-                { label: 'Bank Account No.', placeholder: 'Account number', icon: CreditCard, defaultVal: '' },
-              ].map(field => (
-                <div key={field.label}>
-                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">{field.label}</label>
-                  <input type="text" defaultValue={field.defaultVal || ''}
-                    placeholder={field.placeholder}
-                    className="w-full px-3 py-2.5 border border-[#C8E0DE] rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/60 focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all" />
-                </div>
-              ))}
-
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Status</label>
-                <div className="flex items-center gap-3">
-                  <div className={cn('relative w-10 h-5 rounded-full transition-colors cursor-pointer', 'bg-[#004643]')}>
-                    <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-white rounded-full shadow" />
-                  </div>
-                  <span className="text-sm text-[#0D1F1E]">Active</span>
-                </div>
+                <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Vendor Name</label>
+                <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. Zenith Supplies Co."
+                  className="w-full px-3 py-2.5 border border-[#C8E0DE] rounded-lg text-sm focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20" />
               </div>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Email</label>
+                <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="contact@vendor.com"
+                  className="w-full px-3 py-2.5 border border-[#C8E0DE] rounded-lg text-sm focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Phone</label>
+                <input type="text" required value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-3 py-2.5 border border-[#C8E0DE] rounded-lg text-sm focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">GST Number</label>
+                <input type="text" required value={formData.gstNumber} onChange={e => setFormData({ ...formData, gstNumber: e.target.value })}
+                  placeholder="e.g. 29ABCDE1234F1Z5"
+                  className="w-full px-3 py-2.5 border border-[#C8E0DE] rounded-lg text-sm focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Category</label>
+                <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-[#C8E0DE] rounded-lg text-sm bg-white focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20">
+                  {categories.filter(c => c !== 'All Categories').map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
 
-            <div className="border-t border-[#C8E0DE] px-6 py-4 flex gap-3">
-              <button onClick={() => setDrawerOpen(false)}
-                className="flex-1 py-2.5 border border-[#C8E0DE] rounded-lg text-sm font-medium text-[#527270] hover:bg-[#EBF7F6] transition-colors">
-                Cancel
-              </button>
-              <button onClick={() => setDrawerOpen(false)}
-                className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #004643, #00706A)' }}>
-                {drawerMode === 'add' ? 'Add Vendor' : 'Save Changes'}
-              </button>
-            </div>
+              <div className="border-t border-[#C8E0DE] pt-5 flex gap-3">
+                <button type="button" onClick={() => setDrawerOpen(false)} disabled={submitting}
+                  className="flex-1 py-2.5 border border-[#C8E0DE] rounded-lg text-sm font-medium text-[#527270] hover:bg-[#EBF7F6]">
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, #004643, #00706A)' }}>
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {drawerMode === 'add' ? 'Add Vendor' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </>
       )}

@@ -1,42 +1,79 @@
-import { useState } from 'react';
-import { Search, Plus, Eye, Edit2, Trash2, ChevronDown, FileText } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Plus, Eye, Edit2, Trash2, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from './ui/utils';
 import type { Page } from './Sidebar';
+import { api } from '../lib/api';
+import { toast } from 'sonner';
 
-const rfqs = [
-  { id: 'RFQ-2024-089', title: 'Office Supplies Q3 2024', category: 'Office Supplies', deadline: '20 Jun 2024', vendors: 5, quotations: 3, status: 'open' },
-  { id: 'RFQ-2024-088', title: 'Server Infrastructure Upgrade', category: 'IT Equipment', deadline: '18 Jun 2024', vendors: 8, quotations: 6, status: 'under-review' },
-  { id: 'RFQ-2024-087', title: 'Raw Steel Procurement — Q3', category: 'Metals & Alloys', deadline: '15 Jun 2024', vendors: 4, quotations: 4, status: 'closed' },
-  { id: 'RFQ-2024-086', title: 'Fleet Vehicle Maintenance', category: 'Maintenance', deadline: '25 Jun 2024', vendors: 6, quotations: 2, status: 'open' },
-  { id: 'RFQ-2024-085', title: 'Industrial Safety Equipment', category: 'Safety', deadline: '30 Jun 2024', vendors: 3, quotations: 1, status: 'draft' },
-  { id: 'RFQ-2024-084', title: 'Packaging Materials Annual', category: 'Packaging', deadline: '08 Jun 2024', vendors: 7, quotations: 7, status: 'awarded' },
-  { id: 'RFQ-2024-083', title: 'Cleaning & Janitorial Supplies', category: 'Facilities', deadline: '05 Jun 2024', vendors: 4, quotations: 3, status: 'closed' },
-  { id: 'RFQ-2024-082', title: 'Cloud Software Licenses', category: 'IT Software', deadline: '12 Jun 2024', vendors: 5, quotations: 4, status: 'under-review' },
-];
+interface BackendRFQ {
+  id: string;
+  rfqNumber: string;
+  title: string;
+  description: string;
+  deadline: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+  createdAt: string;
+  _count: {
+    items: number;
+    vendors: number;
+    quotations: number;
+  };
+}
 
 const statusConfig = {
-  draft: { label: 'Draft', color: '#527270', bg: '#D8EDEB' },
-  open: { label: 'Open', color: '#004643', bg: '#D4EEEC' },
-  'under-review': { label: 'Under Review', color: '#9A6800', bg: '#FFF0C8' },
-  closed: { label: 'Closed', color: '#527270', bg: '#D8EDEB' },
-  awarded: { label: 'Awarded', color: '#00706A', bg: '#D4EEEC' },
+  DRAFT: { label: 'Draft', color: '#527270', bg: '#D8EDEB' },
+  PUBLISHED: { label: 'Open', color: '#004643', bg: '#D4EEEC' },
+  CLOSED: { label: 'Closed', color: '#527270', bg: '#D8EDEB' },
 };
 
-const statusFilters = ['All', 'Draft', 'Open', 'Under Review', 'Closed', 'Awarded'];
+const statusFilters = ['All', 'Draft', 'Published', 'Closed'];
 
 interface RFQListProps {
   onNavigate: (page: Page) => void;
 }
 
 export function RFQList({ onNavigate }: RFQListProps) {
+  const [rfqs, setRfqs] = useState<BackendRFQ[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
+  const fetchRfqs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let endpoint = '/rfqs?limit=100';
+      if (statusFilter !== 'All') endpoint += `&status=${statusFilter}`;
+      
+      const data = await api.get<{ rfqs: BackendRFQ[] }>(endpoint);
+      setRfqs(data.rfqs);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch RFQs');
+      toast.error('Error fetching RFQs');
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    fetchRfqs();
+  }, [fetchRfqs]);
+
   const filtered = rfqs.filter(r => {
-    const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) || r.id.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'All' || r.status.replace('-', ' ') === statusFilter.toLowerCase() || r.status === statusFilter.toLowerCase();
-    return matchSearch && matchStatus;
+    const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) || r.rfqNumber.toLowerCase().includes(search.toLowerCase());
+    return matchSearch;
   });
+
+  const handlePublish = async (id: string) => {
+    try {
+      await api.patch(`/rfqs/${id}/publish`, {});
+      toast.success('RFQ published');
+      fetchRfqs();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to publish RFQ');
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -76,87 +113,84 @@ export function RFQList({ onNavigate }: RFQListProps) {
       <div className="bg-white rounded-xl border border-[#C8E0DE]/60 overflow-hidden"
         style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead>
-              <tr className="bg-[#EBF7F6] border-b border-[#C8E0DE]/60">
-                {['RFQ ID', 'Title', 'Category', 'Deadline', 'Vendors', 'Quotations', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-[#527270] uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-16">
-                    <FileText className="w-12 h-12 text-[#C8E0DE] mx-auto mb-3" />
-                    <p className="font-medium text-[#0D1F1E]">No RFQs found</p>
-                    <p className="text-sm text-[#527270] mt-1">Create your first RFQ to get started</p>
-                    <button onClick={() => onNavigate('rfq-create')}
-                      className="mt-4 px-4 py-2 rounded-lg text-sm font-medium text-white inline-flex items-center gap-2"
-                      style={{ background: '#004643' }}>
-                      <Plus className="w-4 h-4" /> Create RFQ
-                    </button>
-                  </td>
+          {loading && rfqs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-[#527270]">
+              <Loader2 className="w-8 h-8 animate-spin mb-2" />
+              <p>Loading RFQs...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-20 text-red-500">
+              <AlertCircle className="w-8 h-8 mb-2" />
+              <p>{error}</p>
+              <button onClick={() => fetchRfqs()} className="mt-4 text-sm font-medium text-[#004643] underline">Try again</button>
+            </div>
+          ) : (
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="bg-[#EBF7F6] border-b border-[#C8E0DE]/60">
+                  {['RFQ ID', 'Title', 'Deadline', 'Vendors', 'Quotations', 'Status', 'Actions'].map(h => (
+                    <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-[#527270] uppercase tracking-wide">{h}</th>
+                  ))}
                 </tr>
-              ) : filtered.map((rfq, i) => {
-                const sc = statusConfig[rfq.status as keyof typeof statusConfig];
-                return (
-                  <tr key={rfq.id} className={cn('border-t border-[#D8EDEB] hover:bg-[#EEF7F6] transition-colors', i % 2 === 1 && 'bg-[#EEF7F6]')}>
-                    <td className="px-5 py-4 font-medium text-[#004643]">{rfq.id}</td>
-                    <td className="px-5 py-4">
-                      <p className="font-medium text-[#0D1F1E]">{rfq.title}</p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="px-2 py-0.5 bg-[#D8EDEB] text-[#527270] rounded text-xs">{rfq.category}</span>
-                    </td>
-                    <td className="px-5 py-4 text-[#527270]">{rfq.deadline}</td>
-                    <td className="px-5 py-4">
-                      <span className="font-medium text-[#0D1F1E]">{rfq.vendors}</span>
-                      <span className="text-[#527270] text-xs ml-1">assigned</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-[#D8EDEB] rounded-full h-1.5 w-16">
-                          <div className="h-1.5 rounded-full bg-[#004643]" style={{ width: `${(rfq.quotations / rfq.vendors) * 100}%` }} />
-                        </div>
-                        <span className="text-xs text-[#527270]">{rfq.quotations}/{rfq.vendors}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium"
-                        style={{ color: sc.color, background: sc.bg }}>
-                        {sc.label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1">
-                        <button className="p-1.5 rounded-lg text-[#527270] hover:bg-[#D4EEEC] hover:text-[#004643] transition-colors" title="View">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 rounded-lg text-[#527270] hover:bg-[#D4EEEC] hover:text-[#004643] transition-colors" title="Edit">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 rounded-lg text-[#527270] hover:bg-[#FDECEA] hover:text-[#C0392B] transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-16">
+                      <FileText className="w-12 h-12 text-[#C8E0DE] mx-auto mb-3" />
+                      <p className="font-medium text-[#0D1F1E]">No RFQs found</p>
+                      <p className="text-sm text-[#527270] mt-1">Create your first RFQ to get started</p>
+                      <button onClick={() => onNavigate('rfq-create')}
+                        className="mt-4 px-4 py-2 rounded-lg text-sm font-medium text-white inline-flex items-center gap-2"
+                        style={{ background: '#004643' }}>
+                        <Plus className="w-4 h-4" /> Create RFQ
+                      </button>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-center justify-between px-5 py-3.5 border-t border-[#D8EDEB] bg-[#EBF7F6]">
-          <p className="text-xs text-[#527270]">Showing {filtered.length} of {rfqs.length} RFQs</p>
-          <div className="flex items-center gap-1">
-            {[1, 2].map(n => (
-              <button key={n} className={cn(
-                'w-7 h-7 rounded-lg text-xs font-medium transition-colors',
-                n === 1 ? 'bg-[#004643] text-white' : 'text-[#527270] hover:bg-[#D4EEEC]'
-              )}>{n}</button>
-            ))}
-          </div>
+                ) : (
+                  filtered.map((rfq, i) => {
+                    const sc = statusConfig[rfq.status] || statusConfig.DRAFT;
+                    return (
+                      <tr key={rfq.id} className={cn('border-t border-[#D8EDEB] hover:bg-[#EEF7F6] transition-colors', i % 2 === 1 && 'bg-[#EEF7F6]')}>
+                        <td className="px-5 py-4 font-medium text-[#004643]">{rfq.rfqNumber}</td>
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-[#0D1F1E]">{rfq.title}</p>
+                        </td>
+                        <td className="px-5 py-4 text-[#527270]">
+                          {new Date(rfq.deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="font-medium text-[#0D1F1E]">{rfq._count.vendors}</span>
+                          <span className="text-[#527270] text-xs ml-1">assigned</span>
+                        </td>
+                        <td className="px-5 py-4 text-[#527270]">
+                          {rfq._count.quotations} submitted
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium"
+                            style={{ color: sc.color, background: sc.bg }}>
+                            {sc.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1">
+                            <button className="p-1.5 rounded-lg text-[#527270] hover:bg-[#D4EEEC] hover:text-[#004643] transition-colors" title="View">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            {rfq.status === 'DRAFT' && (
+                              <button onClick={() => handlePublish(rfq.id)} className="p-1.5 rounded-lg text-[#004643] hover:bg-[#D4EEEC] transition-colors" title="Publish">
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

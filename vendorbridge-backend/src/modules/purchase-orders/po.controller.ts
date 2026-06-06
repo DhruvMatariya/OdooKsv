@@ -19,7 +19,8 @@ export async function createPurchaseOrderHandler(req: AuthRequest, res: Response
 
 export async function listPurchaseOrdersHandler(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
 	try {
-		const data = await listPurchaseOrders(req.query as Record<string, string>);
+		if (!req.user) throw new AppError('Unauthorized', 401);
+		const data = await listPurchaseOrders(req.query as Record<string, string>, req.user);
 		res.status(200).json({ success: true, data });
 	} catch (error) {
 		next(error);

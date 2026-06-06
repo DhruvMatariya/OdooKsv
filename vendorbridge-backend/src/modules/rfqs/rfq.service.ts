@@ -62,12 +62,23 @@ export async function createRfq(input: {
 	return rfq;
 }
 
-export async function listRfqs(query: { status?: string; page?: string | number; limit?: string | number }) {
+export async function listRfqs(query: { status?: string; page?: string | number; limit?: string | number }, user: { role: string, vendorId?: string | null }) {
 	const { page, limit, skip } = parsePagination(query);
 	const where: Record<string, unknown> = {};
 
 	if (query.status) {
 		where.status = query.status.toUpperCase() as RfqStatus;
+	}
+
+	if (user.role === UserRole.VENDOR) {
+		if (!user.vendorId) {
+			throw new AppError('Vendor ID not found for this user', 403);
+		}
+		where.vendors = { some: { vendorId: user.vendorId } };
+		// Vendors should only see published or closed RFQs
+		if (!where.status) {
+			where.status = { in: ['PUBLISHED', 'CLOSED'] };
+		}
 	}
 
 	const [rfqs, total] = await Promise.all([
@@ -100,7 +111,7 @@ export async function getRfqById(id: string) {
 			},
 			approval: {
 				include: {
-					approver: { select: { id: true, name: true, email: true, role: true } },
+					approver: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
 				},
 			},
 		},
