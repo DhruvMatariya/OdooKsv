@@ -46,7 +46,7 @@ export async function getApprovalById(id: string) {
 		where: { id },
 		include: {
 			rfq: true,
-			approver: { select: { id: true, name: true, email: true, role: true } },
+			approver: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
 		},
 	});
 
