@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Eye, EyeOff, User, Lock, ArrowRight, ChevronDown, Phone, Mail, Globe, FileText } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, ArrowRight, ChevronDown, Phone, Mail, Globe, FileText, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth, demoCredentials, roleLabels, type UserRole, type SignupData } from '../context/AuthContext';
 import { cn } from './ui/utils';
 
@@ -34,6 +35,8 @@ export function Login() {
   const [showSignupPwd, setShowSignupPwd] = useState(false);
   const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
   const [signupLoading, setSignupLoading] = useState(false);
+  const [signupStep, setSignupStep] = useState(1);
+  const [direction, setDirection] = useState(0); // 1 for forward, -1 for backward
 
   // Forgot
   const [forgotEmail, setForgotEmail] = useState('');
@@ -61,8 +64,7 @@ export function Login() {
     setSignupErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateStep1 = () => {
     const errs: Record<string, string> = {};
     if (!signupData.firstName?.trim()) errs.firstName = 'Required';
     if (!signupData.lastName?.trim()) errs.lastName = 'Required';
@@ -70,6 +72,30 @@ export function Login() {
     else if (!/\S+@\S+\.\S+/.test(signupData.email)) errs.email = 'Invalid email';
     if (!signupData.phone?.trim()) errs.phone = 'Required';
     if (!signupData.role) errs.role = 'Please select a role';
+
+    if (Object.keys(errs).length) {
+      setSignupErrors(errs);
+      return false;
+    }
+    return true;
+  };
+
+  const handleNextStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateStep1()) {
+      setDirection(1);
+      setSignupStep(2);
+    }
+  };
+
+  const handlePrevStep = () => {
+    setDirection(-1);
+    setSignupStep(1);
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: Record<string, string> = {};
     if (!signupData.country) errs.country = 'Please select a country';
 
     // Role-specific validation
@@ -261,7 +287,7 @@ export function Login() {
               <div className="px-8 pb-7 text-center">
                 <p className="text-sm text-[#527270]">
                   New to VendorBridge?{' '}
-                  <button onClick={() => setView('signup')} className="text-[#004643] font-medium hover:underline">Create account</button>
+                  <button onClick={() => { setView('signup'); setSignupStep(1); }} className="text-[#004643] font-medium hover:underline">Create account</button>
                 </p>
               </div>
             </div>
@@ -269,7 +295,7 @@ export function Login() {
 
           {/* ─── SIGNUP ─── */}
           {view === 'signup' && (
-            <div className="bg-white rounded-2xl border border-[#C8E0DE]/60 shadow-lg overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#C8E0DE]/60 shadow-lg overflow-hidden min-h-[580px] flex flex-col">
               <div className="flex flex-col items-center pt-8 pb-6 px-8 border-b border-[#D8EDEB]"
                 style={{ background: 'linear-gradient(180deg, #EBF7F6 0%, #ffffff 100%)' }}>
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
@@ -279,156 +305,198 @@ export function Login() {
                   </svg>
                 </div>
                 <h1 className="font-bold text-[#0D1F1E]" style={{ fontSize: 22 }}>Create Account</h1>
-                <p className="text-[#527270] text-sm mt-1">Join VendorBridge today</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={cn('w-2 h-2 rounded-full transition-colors duration-300', signupStep === 1 ? 'bg-[#004643]' : 'bg-[#C8E0DE]')} />
+                  <div className={cn('w-2 h-2 rounded-full transition-colors duration-300', signupStep === 2 ? 'bg-[#004643]' : 'bg-[#C8E0DE]')} />
+                  <p className="text-[#527270] text-sm ml-1">{signupStep === 1 ? 'Step 1: Basic Details' : 'Step 2: Security & Info'}</p>
+                </div>
               </div>
 
-              <form onSubmit={handleSignup} className="px-8 py-6 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">First Name <span className="text-[#C0392B]">*</span></label>
-                    <input type="text" value={signupData.firstName || ''} onChange={e => updateSignup('firstName', e.target.value)}
-                      placeholder="James"
-                      className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                        signupErrors.firstName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                    {signupErrors.firstName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.firstName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Last Name <span className="text-[#C0392B]">*</span></label>
-                    <input type="text" value={signupData.lastName || ''} onChange={e => updateSignup('lastName', e.target.value)}
-                      placeholder="Donovan"
-                      className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                        signupErrors.lastName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                    {signupErrors.lastName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.lastName}</p>}
-                  </div>
-                </div>
+              <div className="relative flex-1 overflow-hidden">
+                <AnimatePresence mode="wait" custom={direction}>
+                  {signupStep === 1 ? (
+                    <motion.form
+                      key="step1"
+                      custom={direction}
+                      initial={{ x: direction > 0 ? 50 : -50, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: direction < 0 ? 50 : -50, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      onSubmit={handleNextStep}
+                      className="px-8 py-6 space-y-4"
+                    >
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">First Name <span className="text-[#C0392B]">*</span></label>
+                          <input type="text" value={signupData.firstName || ''} onChange={e => updateSignup('firstName', e.target.value)}
+                            placeholder="James"
+                            className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                              signupErrors.firstName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                          {signupErrors.firstName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.firstName}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Last Name <span className="text-[#C0392B]">*</span></label>
+                          <input type="text" value={signupData.lastName || ''} onChange={e => updateSignup('lastName', e.target.value)}
+                            placeholder="Donovan"
+                            className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                              signupErrors.lastName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                          {signupErrors.lastName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.lastName}</p>}
+                        </div>
+                      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Email <span className="text-[#C0392B]">*</span></label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
-                    <input type="email" value={signupData.email || ''} onChange={e => updateSignup('email', e.target.value)}
-                      placeholder="you@company.com"
-                      className={cn('w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                        signupErrors.email ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                  </div>
-                  {signupErrors.email && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.email}</p>}
-                </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Email <span className="text-[#C0392B]">*</span></label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                          <input type="email" value={signupData.email || ''} onChange={e => updateSignup('email', e.target.value)}
+                            placeholder="you@company.com"
+                            className={cn('w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                              signupErrors.email ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                        </div>
+                        {signupErrors.email && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.email}</p>}
+                      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Phone <span className="text-[#C0392B]">*</span></label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
-                    <input type="tel" value={signupData.phone || ''} onChange={e => updateSignup('phone', e.target.value)}
-                      placeholder="+91 98765 43210"
-                      className={cn('w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                        signupErrors.phone ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                  </div>
-                  {signupErrors.phone && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.phone}</p>}
-                </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Phone <span className="text-[#C0392B]">*</span></label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                          <input type="tel" value={signupData.phone || ''} onChange={e => updateSignup('phone', e.target.value)}
+                            placeholder="+91 98765 43210"
+                            className={cn('w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                              signupErrors.phone ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                        </div>
+                        {signupErrors.phone && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.phone}</p>}
+                      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-[#0D1F1E] mb-2">Role <span className="text-[#C0392B]">*</span></label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {roles.map(r => (
-                      <button type="button" key={r.value} onClick={() => updateSignup('role', r.value)}
-                        className={cn(
-                          'text-left px-3 py-2.5 rounded-lg border-2 transition-all',
-                          signupData.role === r.value
-                            ? 'border-[#004643] bg-[#D4EEEC]'
-                            : 'border-[#C8E0DE] hover:border-[#004643]/40 hover:bg-[#EBF7F6]'
-                        )}>
-                        <p className={cn('text-xs font-semibold', signupData.role === r.value ? 'text-[#004643]' : 'text-[#0D1F1E]')}>{r.label}</p>
-                        <p className="text-[#527270] mt-0.5" style={{ fontSize: 10 }}>{r.desc}</p>
+                      <div>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-2">Role <span className="text-[#C0392B]">*</span></label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {roles.map(r => (
+                            <button type="button" key={r.value} onClick={() => updateSignup('role', r.value)}
+                              className={cn(
+                                'text-left px-3 py-2 rounded-lg border-2 transition-all',
+                                signupData.role === r.value
+                                  ? 'border-[#004643] bg-[#D4EEEC]'
+                                  : 'border-[#C8E0DE] hover:border-[#004643]/40 hover:bg-[#EBF7F6]'
+                              )}>
+                              <p className={cn('text-xs font-semibold', signupData.role === r.value ? 'text-[#004643]' : 'text-[#0D1F1E]')}>{r.label}</p>
+                              <p className="text-[#527270] mt-0.5" style={{ fontSize: 9 }}>{r.desc}</p>
+                            </button>
+                          ))}
+                        </div>
+                        {signupErrors.role && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.role}</p>}
+                      </div>
+
+                      <button type="submit"
+                        className="w-full py-2.5 rounded-lg font-medium text-sm text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 14px rgba(0,70,67,0.35)' }}>
+                        Next Step <ArrowRight className="w-4 h-4" />
                       </button>
-                    ))}
-                  </div>
-                  {signupErrors.role && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.role}</p>}
-                </div>
-
-                {/* Dynamic Fields based on Role */}
-                {(signupData.role === 'vendor' || signupData.role === 'procurement') && (
-                  <div>
-                    <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Company Name <span className="text-[#C0392B]">*</span></label>
-                    <input type="text" value={signupData.companyName || ''} onChange={e => updateSignup('companyName', e.target.value)}
-                      placeholder="Acme Corp"
-                      className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                        signupErrors.companyName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                    {signupErrors.companyName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.companyName}</p>}
-                  </div>
-                )}
-
-                {signupData.role === 'vendor' && (
-                  <div>
-                    <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">GST Number <span className="text-[#C0392B]">*</span></label>
-                    <input type="text" value={signupData.gstNumber || ''} onChange={e => updateSignup('gstNumber', e.target.value)}
-                      placeholder="22AAAAA0000A1Z5"
-                      className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                        signupErrors.gstNumber ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                    {signupErrors.gstNumber && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.gstNumber}</p>}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Country <span className="text-[#C0392B]">*</span></label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
-                    <select value={signupData.country || ''} onChange={e => updateSignup('country', e.target.value)}
-                      className={cn('w-full appearance-none pl-9 pr-8 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 transition-all',
-                        signupErrors.country ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20',
-                        !signupData.country ? 'text-[#527270]/60' : 'text-[#0D1F1E]')}>
-                      <option value="">Select country</option>
-                      {countries.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270] pointer-events-none" />
-                  </div>
-                  {signupErrors.country && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.country}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Password <span className="text-[#C0392B]">*</span></label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
-                    <input type={showSignupPwd ? 'text' : 'password'} value={signupPwd} onChange={e => setSignupPwd(e.target.value)}
-                      placeholder="Min. 8 characters"
-                      className={cn('w-full pl-9 pr-10 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
-                        signupErrors.password ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
-                    <button type="button" onClick={() => setShowSignupPwd(!showSignupPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#527270]">
-                      {showSignupPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {signupErrors.password && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.password}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">
-                    Additional Info <span className="text-[#527270] font-normal">(optional)</span>
-                  </label>
-                  <div className="relative">
-                    <FileText className="absolute left-3 top-3 w-4 h-4 text-[#527270]" />
-                    <textarea rows={2} value={signupData.additionalInfo || ''} onChange={e => updateSignup('additionalInfo', e.target.value)}
-                      placeholder="Company name, department, or any other relevant info..."
-                      className="w-full pl-9 pr-4 py-2.5 border border-[#C8E0DE] rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all resize-none" />
-                  </div>
-                </div>
-
-                <button type="submit" disabled={signupLoading}
-                  className="w-full py-2.5 rounded-lg font-medium text-sm text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
-                  style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 14px rgba(0,70,67,0.35)' }}>
-                  {signupLoading ? (
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
+                    </motion.form>
                   ) : (
-                    <>Create Account <ArrowRight className="w-4 h-4" /></>
-                  )}
-                </button>
-              </form>
+                    <motion.form
+                      key="step2"
+                      custom={direction}
+                      initial={{ x: direction > 0 ? 50 : -50, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: direction < 0 ? 50 : -50, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      onSubmit={handleSignup}
+                      className="px-8 py-6 space-y-4"
+                    >
+                      {/* Dynamic Fields based on Role */}
+                      {(signupData.role === 'vendor' || signupData.role === 'procurement') && (
+                        <div>
+                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Company Name <span className="text-[#C0392B]">*</span></label>
+                          <input type="text" value={signupData.companyName || ''} onChange={e => updateSignup('companyName', e.target.value)}
+                            placeholder="Acme Corp"
+                            className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                              signupErrors.companyName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                          {signupErrors.companyName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.companyName}</p>}
+                        </div>
+                      )}
 
-              <div className="px-8 pb-7 text-center">
+                      {signupData.role === 'vendor' && (
+                        <div>
+                          <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">GST Number <span className="text-[#C0392B]">*</span></label>
+                          <input type="text" value={signupData.gstNumber || ''} onChange={e => updateSignup('gstNumber', e.target.value)}
+                            placeholder="22AAAAA0000A1Z5"
+                            className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                              signupErrors.gstNumber ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                          {signupErrors.gstNumber && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.gstNumber}</p>}
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Country <span className="text-[#C0392B]">*</span></label>
+                        <div className="relative">
+                          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                          <select value={signupData.country || ''} onChange={e => updateSignup('country', e.target.value)}
+                            className={cn('w-full appearance-none pl-9 pr-8 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 transition-all',
+                              signupErrors.country ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20',
+                              !signupData.country ? 'text-[#527270]/60' : 'text-[#0D1F1E]')}>
+                            <option value="">Select country</option>
+                            {countries.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270] pointer-events-none" />
+                        </div>
+                        {signupErrors.country && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.country}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Password <span className="text-[#C0392B]">*</span></label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                          <input type={showSignupPwd ? 'text' : 'password'} value={signupPwd} onChange={e => setSignupPwd(e.target.value)}
+                            placeholder="Min. 8 characters"
+                            className={cn('w-full pl-9 pr-10 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                              signupErrors.password ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                          <button type="button" onClick={() => setShowSignupPwd(!showSignupPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#527270]">
+                            {showSignupPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                        {signupErrors.password && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.password}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">
+                          Additional Info <span className="text-[#527270] font-normal">(optional)</span>
+                        </label>
+                        <div className="relative">
+                          <FileText className="absolute left-3 top-3 w-4 h-4 text-[#527270]" />
+                          <textarea rows={2} value={signupData.additionalInfo || ''} onChange={e => updateSignup('additionalInfo', e.target.value)}
+                            placeholder="Company name, department, or any other relevant info..."
+                            className="w-full pl-9 pr-4 py-2.5 border border-[#C8E0DE] rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all resize-none" />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={handlePrevStep}
+                          className="flex-1 py-2.5 rounded-lg font-medium text-sm text-[#527270] border border-[#C8E0DE] hover:bg-[#F5F9F8] transition-all flex items-center justify-center gap-2">
+                          <ArrowLeft className="w-4 h-4" /> Back
+                        </button>
+                        <button type="submit" disabled={signupLoading}
+                          className="flex-[2] py-2.5 rounded-lg font-medium text-sm text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
+                          style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 14px rgba(0,70,67,0.35)' }}>
+                          {signupLoading ? (
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : (
+                            <>Create Account <ArrowRight className="w-4 h-4" /></>
+                          )}
+                        </button>
+                      </div>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="px-8 pb-7 text-center border-t border-[#D8EDEB] pt-4">
                 <p className="text-sm text-[#527270]">
                   Already have an account?{' '}
-                  <button onClick={() => setView('login')} className="text-[#004643] font-medium hover:underline">Sign in</button>
+                  <button onClick={() => { setView('login'); setSignupStep(1); }} className="text-[#004643] font-medium hover:underline">Sign in</button>
                 </p>
               </div>
             </div>
