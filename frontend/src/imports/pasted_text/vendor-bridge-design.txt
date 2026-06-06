@@ -1,0 +1,212 @@
+Design a complete Figma UI for a Procurement & Vendor Management ERP web application called VendorBridge, intended for implementation in Next.js.
+
+=== DESIGN SYSTEM ===
+
+Font Family: Poppins (all weights, all elements — no exceptions)
+- H1: Poppins SemiBold 32px
+- H2: Poppins SemiBold 24px
+- H3: Poppins Medium 20px
+- Body: Poppins Regular 14px
+- Label/Small: Poppins Regular 12px
+- Button Text: Poppins Medium 14px
+
+Color Palette:
+- Primary: #3B5BDB
+- Primary Light: #EEF2FF
+- Success/Approved: #0CA678
+- Danger/Rejected: #FA5252
+- Warning/Pending: #FD7E14
+- Text Primary: #1A1A2E
+- Text Secondary: #4A4A68
+- Borders: #CED4DA
+- Background: #F8F9FA
+- Card Background: #FFFFFF
+
+Grid & Spacing:
+- 8pt grid system
+- Page padding: 32px
+- Card padding: 24px
+- Border radius — Cards: 12px, Inputs/Buttons: 8px, Badges: 6px
+- Card shadow: 0px 2px 12px rgba(0,0,0,0.06)
+- Sidebar width: 240px
+- Top navbar height: 64px
+
+=== COMPONENT LIBRARY (build as reusable Figma components with variants) ===
+
+Buttons: Primary, Secondary, Danger, Ghost — each with Default, Hover, Disabled states
+Inputs: Text, Password, Search, Textarea — Default, Focused, Error, Disabled states
+Dropdown / Select menus
+Date Picker
+Status Badges: Draft, Pending, Approved, Rejected, Active, Inactive, Paid, Unpaid
+Data Table: Sortable header row, body rows with hover state, row checkbox, pagination controls
+Sidebar Navigation: Logo top, nav items with icon + label, Active and Hover states
+Top Navbar: Logo/brand left, global search center, notification bell + user avatar dropdown right
+Modals: Confirmation modal, Form modal, with overlay backdrop
+Drawer: Right-side slide-in panel for detail views
+Toast Notifications: Success, Error, Warning, Info
+Empty State: Illustration + heading + subtext + CTA button
+Loading Skeleton: For cards, tables, and list items
+Avatar: Initials-based and image-based, sizes S/M/L
+Breadcrumb navigation
+
+=== SCREENS (design all 10 screens at 1440px width, desktop-first) ===
+
+--- SCREEN 1: LOGIN / SIGNUP ---
+Split screen layout.
+Left panel (40%): Deep indigo (#3B5BDB) background, VendorBridge logo in white, tagline "Streamline Your Procurement", abstract geometric illustration.
+Right panel (60%): White background, centered form card.
+Login form: Email input, Password input with show/hide toggle, "Forgot Password?" link, Primary "Login" button, divider, "Don't have an account? Sign Up" text link.
+Signup form: Full Name, Email, Password, Confirm Password, Role dropdown (Procurement Officer / Vendor / Manager / Admin), Primary "Create Account" button.
+Forgot Password view: Email input, "Send Reset Link" button, back to login link.
+Show inline validation error states under each field.
+
+--- SCREEN 2: DASHBOARD ---
+Top navbar + left sidebar layout.
+Sidebar: VendorBridge logo + icon, nav items — Dashboard, Vendors, RFQs, Quotations, Approvals, Purchase Orders, Invoices, Reports, Activity Logs, Settings. Active item highlighted with primary color left border accent + light blue background.
+Top navbar: Page title "Dashboard", notification bell with badge, user avatar with dropdown.
+Row 1 — 4 KPI cards:
+  - Pending Approvals (orange #FD7E14 accent)
+  - Active RFQs (blue #3B5BDB accent)
+  - Purchase Orders This Month (green #0CA678 accent)
+  - Invoices Generated (purple #7950F2 accent)
+  Each card: icon, large number, label, small % change tag (up/down arrow).
+Row 2 — Quick action buttons: "+ Create RFQ", "+ Add Vendor", "View Reports"
+Row 3 — Two columns:
+  Left (60%): Recent Purchase Orders table — columns: PO Number, Vendor Name, Amount, Status badge, Date. Show 5 rows.
+  Right (40%): Recent Invoices list — Invoice #, Vendor, Amount, Status badge. Show 5 rows.
+Row 4 — Full width: Monthly Procurement Trend — clean line chart showing 12-month spend data with grid lines, tooltips, and axis labels.
+
+--- SCREEN 3: VENDOR MANAGEMENT ---
+Page header: "Vendors" title, "+ Add Vendor" primary button top right.
+Filter bar: Search input ("Search vendors..."), Category dropdown, Status filter tabs (All / Active / Inactive / Blacklisted), GST Verified toggle.
+Vendor data table:
+  Columns: Checkbox, Vendor Name + logo/avatar, Category, GST Number, Contact Person, Email, Phone, Status badge, Actions (View, Edit, Deactivate icons).
+  Show 8 rows.
+Add/Edit Vendor — right-side drawer panel:
+  Fields: Vendor Name, Category, GST Number, PAN, Address, Contact Person Name, Email, Phone, Bank Details, Status toggle.
+  Footer: Cancel + Save buttons.
+Vendor Detail modal or full page view:
+  Header: Vendor name, status badge, Edit button.
+  Tabs: Overview, RFQ History, Quotations, Purchase Orders.
+  Overview: contact info card, GST details card, bank details card.
+
+--- SCREEN 4: RFQ CREATION ---
+Page header: "Create RFQ", breadcrumb: Dashboard > RFQs > Create.
+Form layout (two-column card):
+  Left column: RFQ Title (text input), Description (textarea), Category dropdown, Deadline (date picker), Attachment upload zone (drag & drop).
+  Right column: Assign Vendors (multi-select dropdown with vendor chips), Priority dropdown (Low/Medium/High).
+Line Items section (full width below):
+  Table with columns: Item Name, Description, Quantity, Unit, Estimated Price. 
+  "+ Add Item" button below table rows.
+  Remove row icon on each row.
+Footer: "Save as Draft" ghost button + "Publish RFQ" primary button.
+RFQ List page (separate screen):
+  Table: RFQ ID, Title, Category, Deadline, Vendors Assigned, Quotations Received, Status badge, Actions.
+  Filter bar: Search, Status filter, Date range picker.
+
+--- SCREEN 5: VENDOR QUOTATION SUBMISSION ---
+This is the vendor-facing screen. Clean, minimal layout.
+Page header: "Submit Quotation" — RFQ title shown as subtitle with RFQ ID badge.
+RFQ summary card (read-only): Items requested, deadline, buyer organization name.
+Quotation form card:
+  For each line item: Unit Price input, Total (auto-calculated, read-only), Notes input.
+  Delivery Timeline: date picker.
+  General Notes: textarea.
+  Attachments: upload zone.
+  Validity Period: input (days).
+Footer: "Save Draft" ghost button + "Submit Quotation" primary button.
+Submitted state: Success illustration + "Quotation submitted successfully" + "View My Quotations" button.
+
+--- SCREEN 6: QUOTATION COMPARISON ---
+Page header: "Compare Quotations" — RFQ title as subtitle.
+RFQ details summary bar: Items count, deadline, status badge.
+Comparison table (horizontal scroll if needed):
+  First column (sticky): Item details — Item Name, Quantity, Unit.
+  Remaining columns: One column per vendor quotation — Vendor Name + rating stars, Unit Price, Total Price, Delivery Date, Notes.
+  Highlight lowest price cell in green (#EBF9F4 background, #0CA678 text).
+  Show overall totals row at bottom.
+Action row per vendor column: "Select Vendor" button.
+Summary section below table:
+  Side-by-side vendor cards showing: Total Quote Amount, Delivery Timeline, Vendor Rating, a "Select & Proceed" primary button.
+Sorting controls: Sort by Price, Delivery Date, Rating.
+
+--- SCREEN 7: APPROVAL WORKFLOW ---
+Page header: "Approval Requests".
+Filter tabs: All, Pending, Approved, Rejected.
+Approval request cards in a list:
+  Each card: RFQ Title, Vendor Name, Total Amount, Requested By, Date Submitted, Status badge, "Review" button.
+Approval Detail view (full page or modal):
+  Header: RFQ Title, status badge, timeline steps (Created → Submitted → Under Review → Approved/Rejected).
+  Left panel: PO summary — vendor info, line items table, total amount, delivery date.
+  Right panel: Approval action card — Remarks textarea, "Approve" (green primary) button + "Reject" (red danger) button.
+  Approval history timeline below: each step with actor name, role, action taken, timestamp, remarks.
+
+--- SCREEN 8: PURCHASE ORDER & INVOICE ---
+Purchase Orders list page:
+  Table: PO Number, RFQ Title, Vendor, Total Amount, Created Date, Status, Actions (View, Download, Send).
+PO Detail / Invoice page (this is the main generation screen):
+  Top: VendorBridge logo left, "PURCHASE ORDER" label right, PO Number, PO Date, Due Date.
+  Two columns: Bill To (organization details) | Vendor Details.
+  Line items table: Item, Description, Qty, Unit Price, Tax %, Tax Amount, Total.
+  Subtotal, Tax Total, Grand Total — right-aligned summary block.
+  Terms & Conditions text area at bottom.
+  Footer action bar: "Download PDF" button, "Print" button, "Send via Email" button, "Mark as Paid" button.
+Invoice Generation:
+  Same layout as PO with "INVOICE" label, Invoice Number, Invoice Date, Payment Due Date.
+  Status badge: Unpaid / Paid / Overdue.
+Send Invoice modal:
+  To email input (pre-filled from vendor), CC input, Subject input, Message textarea, "Send Email" primary button.
+
+--- SCREEN 9: ACTIVITY LOGS & NOTIFICATIONS ---
+Page header: "Activity Logs".
+Filter bar: Search, Module filter (RFQ/PO/Invoice/Vendor/Approval), Date range, Actor/User filter.
+Activity timeline (full width):
+  Each entry: colored left border by module type, actor avatar + name, action description, module name + ID as a link, timestamp.
+  Group by date (Today, Yesterday, This Week).
+Notifications panel (right sidebar or separate tab):
+  Notification list: icon by type (bell/check/alert), title, short description, time, unread dot indicator.
+  "Mark all as read" link top right.
+  Filter: All, Unread, RFQ, Approvals, Invoices.
+
+--- SCREEN 10: REPORTS & ANALYTICS ---
+Page header: "Reports & Analytics".
+Date range selector top right + "Export Report" button.
+Row 1 — 4 summary stat cards: Total Spend This Month, Total POs Generated, Vendors Active, Avg. Approval Time.
+Row 2 — Two charts side by side:
+  Left: Monthly Procurement Spend — bar chart, 12 months, primary blue bars.
+  Right: Spend by Category — donut/pie chart with legend.
+Row 3 — Two panels:
+  Left: Top Vendors by Spend — ranked list with vendor name, total spend, progress bar, POs count.
+  Right: Approval Turnaround Time — horizontal bar chart per approver.
+Row 4 — Full width: Procurement Status Overview — stacked bar or grouped bar chart showing RFQs, POs, Invoices by status per month.
+Exportable Reports section:
+  Table: Report Name, Type, Date Range, Generated By, Actions (Download CSV, Download PDF).
+
+=== LAYOUT RULES ===
+- All screens use the same top navbar + left sidebar shell
+- Login/Signup is full screen without sidebar
+- Vendor Quotation Submission screen has a minimal navbar only (vendor-facing)
+- Use consistent card-based content areas with white background and subtle shadow
+- Tables always have alternating row shading (white / #F8F9FA)
+- All CTAs and primary actions use #3B5BDB
+- Empty states must be designed for every list/table screen
+- Mobile responsiveness notes: sidebar collapses to hamburger menu, cards stack vertically
+
+=== FIGMA FILE STRUCTURE ===
+Page 1: 🎨 Design System (colors, typography, spacing, icons)
+Page 2: 🧩 Components (all reusable components with variants)
+Page 3: 🖥️ Screens — Auth (Login, Signup, Forgot Password)
+Page 4: 🖥️ Screens — Core (Dashboard, Vendors, RFQ, Quotations)
+Page 5: 🖥️ Screens — Workflow (Comparison, Approvals, PO & Invoice)
+Page 6: 🖥️ Screens — Logs & Reports
+Page 7: 📱 Mobile Breakpoints (optional)
+Page 8: 🔄 User Flow Diagrams
+
+=== ADDITIONAL NOTES ===
+- Use auto-layout on all components and frames
+- All components must have properly named layers
+- Use Figma variables for colors and font sizes
+- Prototype connections: Login → Dashboard, Dashboard → each module, RFQ flow end-to-end
+- Design for 1440px desktop width, content max-width 1200px centered
+- Use realistic placeholder data (vendor names, amounts, dates — not "Lorem Ipsum")
+- Every screen must have at least one filled/data state and one empty state

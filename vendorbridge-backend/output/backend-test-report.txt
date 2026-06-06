@@ -1,0 +1,26 @@
+VendorBridge backend test report
+Run time: 2026-06-06T04:56:36.343Z
+Temporary directory: C:\Users\SMITHF~1\AppData\Local\Temp\vendorbridge-backend-test-l7RuKR
+Passed: 20
+Failed: 0
+
+PASSED: GET /health returns ok
+PASSED: POST /api/auth/register validates required fields
+PASSED: POST /api/auth/login validates required fields
+PASSED: GET /api/auth/me rejects missing token
+PASSED: GET /api/vendors requires auth
+PASSED: POST /api/vendors requires auth
+PASSED: GET /api/rfqs requires auth
+PASSED: POST /api/rfqs requires auth
+PASSED: GET /api/rfqs/1/quotations requires auth
+PASSED: POST /api/rfqs/1/quotations requires auth
+PASSED: GET /api/approvals/1 requires auth
+PASSED: POST /api/approvals requires auth
+PASSED: GET /api/purchase-orders requires auth
+PASSED: POST /api/purchase-orders requires auth
+PASSED: GET /api/invoices/1 requires auth
+PASSED: POST /api/invoices requires auth
+PASSED: GET /api/dashboard requires auth
+PASSED: GET /api/activity-logs requires auth
+PASSED: GET /api/analytics requires auth
+PASSED: GET unknown route returns not found

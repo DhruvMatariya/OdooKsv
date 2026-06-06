@@ -1,0 +1,462 @@
+import { useState } from 'react';
+import { Eye, EyeOff, User, Lock, ArrowRight, ChevronDown, Phone, Mail, Globe, FileText } from 'lucide-react';
+import { useAuth, demoCredentials, roleLabels, type UserRole, type SignupData } from '../context/AuthContext';
+import { cn } from './ui/utils';
+
+type AuthView = 'login' | 'signup' | 'forgot';
+
+const countries = [
+  'India', 'United States', 'United Kingdom', 'Australia', 'Canada',
+  'Germany', 'France', 'Singapore', 'UAE', 'Japan', 'Other'
+];
+
+const roles: Array<{ value: UserRole; label: string; desc: string }> = [
+  { value: 'procurement', label: 'Procurement Officer', desc: 'Create RFQs, POs, and invoices' },
+  { value: 'vendor', label: 'Vendor', desc: 'Submit quotations and track orders' },
+  { value: 'manager', label: 'Manager / Approver', desc: 'Approve procurement requests' },
+  { value: 'admin', label: 'Administrator', desc: 'Manage users and system settings' },
+];
+
+export function Login() {
+  const { login, signup } = useAuth();
+  const [view, setView] = useState<AuthView>('login');
+
+  // Login state
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // Signup state
+  const [signupData, setSignupData] = useState<Partial<SignupData>>({});
+  const [signupPwd, setSignupPwd] = useState('');
+  const [showSignupPwd, setShowSignupPwd] = useState(false);
+  const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
+  const [signupLoading, setSignupLoading] = useState(false);
+
+  // Forgot
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    if (!username.trim()) { setLoginError('Username is required'); return; }
+    if (!password) { setLoginError('Password is required'); return; }
+    setLoginLoading(true);
+    const result = await login(username, password);
+    setLoginLoading(false);
+    if (!result.success) setLoginError(result.error || 'Login failed');
+  };
+
+  const fillDemo = (cred: typeof demoCredentials[0]) => {
+    setUsername(cred.username);
+    setPassword(cred.password);
+    setLoginError('');
+  };
+
+  const updateSignup = (field: keyof SignupData, value: string) => {
+    setSignupData(prev => ({ ...prev, [field]: value }));
+    setSignupErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (!signupData.firstName?.trim()) errs.firstName = 'Required';
+    if (!signupData.lastName?.trim()) errs.lastName = 'Required';
+    if (!signupData.email?.trim()) errs.email = 'Required';
+    else if (!/\S+@\S+\.\S+/.test(signupData.email)) errs.email = 'Invalid email';
+    if (!signupData.phone?.trim()) errs.phone = 'Required';
+    if (!signupData.role) errs.role = 'Please select a role';
+    if (!signupData.country) errs.country = 'Please select a country';
+    if (!signupPwd) errs.password = 'Required';
+    else if (signupPwd.length < 8) errs.password = 'Min 8 characters';
+
+    if (Object.keys(errs).length) { setSignupErrors(errs); return; }
+
+    setSignupLoading(true);
+    await signup({ ...signupData as SignupData, password: signupPwd });
+    setSignupLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex bg-[#EBF7F6]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      {/* Left gradient panel */}
+      <div className="hidden lg:flex flex-col justify-between w-[42%] p-12 relative overflow-hidden"
+        style={{ background: 'linear-gradient(145deg, #003330 0%, #004643 50%, #00706A 100%)' }}>
+        {/* Decorative circles */}
+        <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5" />
+        <div className="absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-white/5" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-white/5" />
+
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.15) 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center border border-white/30">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <span className="text-white font-bold text-xl">VendorBridge</span>
+          </div>
+        </div>
+
+        <div className="relative z-10 space-y-8">
+          <div>
+            <h2 className="text-white font-bold leading-tight" style={{ fontSize: 38 }}>
+              Intelligent<br />Procurement<br />Platform
+            </h2>
+            <p className="text-white/70 mt-4 text-sm leading-relaxed max-w-xs">
+              End-to-end vendor management, RFQ workflows, and automated invoice generation — built for modern procurement teams.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { icon: '📋', label: 'RFQs Published', value: '18,500+' },
+              { icon: '🏢', label: 'Active Vendors', value: '2,400+' },
+              { icon: '📦', label: 'Purchase Orders', value: '45,000+' },
+              { icon: '⚡', label: 'Faster Approvals', value: '3× faster' },
+            ].map(s => (
+              <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                <span style={{ fontSize: 20 }}>{s.icon}</span>
+                <p className="text-white font-bold text-lg mt-2">{s.value}</p>
+                <p className="text-white/60 text-xs mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+            <p className="text-white/80 text-sm italic">"VendorBridge cut our procurement cycle from 3 weeks to 5 days."</p>
+            <div className="flex items-center gap-2 mt-3">
+              <div className="w-7 h-7 rounded-full bg-white/30 flex items-center justify-center text-white text-xs font-bold">AK</div>
+              <div>
+                <p className="text-white text-xs font-medium">Ankit Kumar</p>
+                <p className="text-white/60 text-xs">CPO, InfraTech Solutions</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10">
+          <p className="text-white/40 text-xs">© 2024 VendorBridge Corp. All rights reserved.</p>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
+        <div className="w-full max-w-[420px] py-8">
+
+          {/* ─── LOGIN ─── */}
+          {view === 'login' && (
+            <div className="bg-white rounded-2xl border border-[#C8E0DE]/60 shadow-lg overflow-hidden">
+              {/* Card header with logo */}
+              <div className="flex flex-col items-center pt-8 pb-6 px-8 border-b border-[#D8EDEB]"
+                style={{ background: 'linear-gradient(180deg, #EBF7F6 0%, #ffffff 100%)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                  style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 8px 24px rgba(0,70,67,0.3)' }}>
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <h1 className="font-bold text-[#0D1F1E]" style={{ fontSize: 22 }}>VendorBridge</h1>
+                <p className="text-[#527270] text-sm mt-1">Sign in to your account</p>
+              </div>
+
+              <form onSubmit={handleLogin} className="px-8 py-6 space-y-4">
+                {loginError && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-[#FDECEA] border border-[#C0392B]/30 rounded-lg text-[#C0392B] text-sm">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" />
+                    </svg>
+                    {loginError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Username</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={e => setUsername(e.target.value)}
+                      placeholder="e.g. james.donovan"
+                      autoComplete="username"
+                      className="w-full pl-9 pr-4 py-2.5 border border-[#C8E0DE] rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      className="w-full pl-9 pr-10 py-2.5 border border-[#C8E0DE] rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all"
+                    />
+                    <button type="button" onClick={() => setShowPwd(!showPwd)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#527270] hover:text-[#0D1F1E] transition-colors">
+                      {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <div className="flex justify-end mt-1.5">
+                    <button type="button" onClick={() => setView('forgot')} className="text-xs text-[#004643] hover:underline">
+                      Forgot password?
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="w-full py-2.5 rounded-lg font-medium text-sm text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 14px rgba(0,70,67,0.35)' }}>
+                  {loginLoading ? (
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <>Sign In <ArrowRight className="w-4 h-4" /></>
+                  )}
+                </button>
+              </form>
+
+              {/* Demo credentials */}
+              <div className="px-8 pb-6">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#D8EDEB]" /></div>
+                  <div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-[#527270]">try a demo account</span></div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {demoCredentials.map(cred => (
+                    <button key={cred.role} onClick={() => fillDemo(cred)}
+                      className="px-3 py-2 text-xs rounded-lg border border-[#C8E0DE] text-[#527270] hover:border-[#004643] hover:text-[#004643] hover:bg-[#D4EEEC] transition-all text-left">
+                      <span className="block font-medium text-[#0D1F1E]">{roleLabels[cred.role].split(' ')[0]}</span>
+                      <span className="text-[#527270]/70">{cred.username}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="px-8 pb-7 text-center">
+                <p className="text-sm text-[#527270]">
+                  New to VendorBridge?{' '}
+                  <button onClick={() => setView('signup')} className="text-[#004643] font-medium hover:underline">Create account</button>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ─── SIGNUP ─── */}
+          {view === 'signup' && (
+            <div className="bg-white rounded-2xl border border-[#C8E0DE]/60 shadow-lg overflow-hidden">
+              <div className="flex flex-col items-center pt-8 pb-6 px-8 border-b border-[#D8EDEB]"
+                style={{ background: 'linear-gradient(180deg, #EBF7F6 0%, #ffffff 100%)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                  style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 8px 24px rgba(0,70,67,0.3)' }}>
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <h1 className="font-bold text-[#0D1F1E]" style={{ fontSize: 22 }}>Create Account</h1>
+                <p className="text-[#527270] text-sm mt-1">Join VendorBridge today</p>
+              </div>
+
+              <form onSubmit={handleSignup} className="px-8 py-6 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">First Name <span className="text-[#C0392B]">*</span></label>
+                    <input type="text" value={signupData.firstName || ''} onChange={e => updateSignup('firstName', e.target.value)}
+                      placeholder="James"
+                      className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                        signupErrors.firstName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                    {signupErrors.firstName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.firstName}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Last Name <span className="text-[#C0392B]">*</span></label>
+                    <input type="text" value={signupData.lastName || ''} onChange={e => updateSignup('lastName', e.target.value)}
+                      placeholder="Donovan"
+                      className={cn('w-full px-3 py-2.5 border rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                        signupErrors.lastName ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                    {signupErrors.lastName && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.lastName}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Email <span className="text-[#C0392B]">*</span></label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                    <input type="email" value={signupData.email || ''} onChange={e => updateSignup('email', e.target.value)}
+                      placeholder="you@company.com"
+                      className={cn('w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                        signupErrors.email ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                  </div>
+                  {signupErrors.email && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Phone <span className="text-[#C0392B]">*</span></label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                    <input type="tel" value={signupData.phone || ''} onChange={e => updateSignup('phone', e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className={cn('w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                        signupErrors.phone ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                  </div>
+                  {signupErrors.phone && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.phone}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-2">Role <span className="text-[#C0392B]">*</span></label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {roles.map(r => (
+                      <button type="button" key={r.value} onClick={() => updateSignup('role', r.value)}
+                        className={cn(
+                          'text-left px-3 py-2.5 rounded-lg border-2 transition-all',
+                          signupData.role === r.value
+                            ? 'border-[#004643] bg-[#D4EEEC]'
+                            : 'border-[#C8E0DE] hover:border-[#004643]/40 hover:bg-[#EBF7F6]'
+                        )}>
+                        <p className={cn('text-xs font-semibold', signupData.role === r.value ? 'text-[#004643]' : 'text-[#0D1F1E]')}>{r.label}</p>
+                        <p className="text-[#527270] mt-0.5" style={{ fontSize: 10 }}>{r.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                  {signupErrors.role && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.role}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Country <span className="text-[#C0392B]">*</span></label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                    <select value={signupData.country || ''} onChange={e => updateSignup('country', e.target.value)}
+                      className={cn('w-full appearance-none pl-9 pr-8 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 transition-all',
+                        signupErrors.country ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20',
+                        !signupData.country ? 'text-[#527270]/60' : 'text-[#0D1F1E]')}>
+                      <option value="">Select country</option>
+                      {countries.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270] pointer-events-none" />
+                  </div>
+                  {signupErrors.country && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.country}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Password <span className="text-[#C0392B]">*</span></label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                    <input type={showSignupPwd ? 'text' : 'password'} value={signupPwd} onChange={e => setSignupPwd(e.target.value)}
+                      placeholder="Min. 8 characters"
+                      className={cn('w-full pl-9 pr-10 py-2.5 border rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:ring-2 transition-all',
+                        signupErrors.password ? 'border-[#C0392B] focus:ring-[#C0392B]/20' : 'border-[#C8E0DE] focus:border-[#004643] focus:ring-[#004643]/20')} />
+                    <button type="button" onClick={() => setShowSignupPwd(!showSignupPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#527270]">
+                      {showSignupPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {signupErrors.password && <p className="text-[#C0392B] text-xs mt-1">{signupErrors.password}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">
+                    Additional Info <span className="text-[#527270] font-normal">(optional)</span>
+                  </label>
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-3 w-4 h-4 text-[#527270]" />
+                    <textarea rows={2} value={signupData.additionalInfo || ''} onChange={e => updateSignup('additionalInfo', e.target.value)}
+                      placeholder="Company name, department, or any other relevant info..."
+                      className="w-full pl-9 pr-4 py-2.5 border border-[#C8E0DE] rounded-lg text-sm text-[#0D1F1E] placeholder:text-[#527270]/50 focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all resize-none" />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={signupLoading}
+                  className="w-full py-2.5 rounded-lg font-medium text-sm text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 4px 14px rgba(0,70,67,0.35)' }}>
+                  {signupLoading ? (
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <>Create Account <ArrowRight className="w-4 h-4" /></>
+                  )}
+                </button>
+              </form>
+
+              <div className="px-8 pb-7 text-center">
+                <p className="text-sm text-[#527270]">
+                  Already have an account?{' '}
+                  <button onClick={() => setView('login')} className="text-[#004643] font-medium hover:underline">Sign in</button>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ─── FORGOT PASSWORD ─── */}
+          {view === 'forgot' && (
+            <div className="bg-white rounded-2xl border border-[#C8E0DE]/60 shadow-lg overflow-hidden">
+              <div className="flex flex-col items-center pt-8 pb-6 px-8 border-b border-[#D8EDEB]"
+                style={{ background: 'linear-gradient(180deg, #EBF7F6 0%, #ffffff 100%)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                  style={{ background: 'linear-gradient(135deg, #004643, #00706A)', boxShadow: '0 8px 24px rgba(0,70,67,0.3)' }}>
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <h1 className="font-bold text-[#0D1F1E]" style={{ fontSize: 22 }}>{forgotSent ? 'Check Your Email' : 'Reset Password'}</h1>
+                <p className="text-[#527270] text-sm mt-1 text-center">
+                  {forgotSent ? `Reset link sent to ${forgotEmail}` : 'We\'ll send you a reset link'}
+                </p>
+              </div>
+
+              <div className="px-8 py-6">
+                {!forgotSent ? (
+                  <form onSubmit={e => { e.preventDefault(); setForgotSent(true); }} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#0D1F1E] mb-1.5">Email address</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#527270]" />
+                        <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
+                          placeholder="you@company.com"
+                          className="w-full pl-9 pr-4 py-2.5 border border-[#C8E0DE] rounded-lg text-sm placeholder:text-[#527270]/50 focus:outline-none focus:border-[#004643] focus:ring-2 focus:ring-[#004643]/20 transition-all" />
+                      </div>
+                    </div>
+                    <button type="submit"
+                      className="w-full py-2.5 rounded-lg font-medium text-sm text-white transition-all hover:opacity-90"
+                      style={{ background: 'linear-gradient(135deg, #004643, #00706A)' }}>
+                      Send Reset Link
+                    </button>
+                  </form>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="w-14 h-14 bg-[#D4EEEC] rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-7 h-7 text-[#00706A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-[#527270]">Didn't get it? <button className="text-[#004643] hover:underline">Resend link</button></p>
+                  </div>
+                )}
+                <button onClick={() => { setView('login'); setForgotSent(false); }}
+                  className="flex items-center justify-center gap-1 text-sm text-[#527270] hover:text-[#0D1F1E] w-full mt-4">
+                  ← Back to Sign In
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
